@@ -1,5 +1,7 @@
 class Part:
 
+    PAUSE = '_'
+
     def __init__(self, name, notes):
         self.name = name
         self.notes = notes
@@ -8,18 +10,26 @@ class Part:
             'velocity' : 127,
             }
         self.pointer = 0
-        self.altered = False
+        self.altered = None
+        self.reset_altered()
 
     def set_property(self, name, value):
         if name not in self.properties:
             raise Exception('Property undefined: ' + name)
         self.properties[name] = value
 
-    def note_at(self, index):
+    def get_note_at(self, index):
         return self.notes[index % len(self.notes)]
 
-class Pause:
-    pass
+    def set_note_at(self, index, note):
+        self.notes[index % len(self.notes)] = note
+        self.altered[index % len(self.notes)] = True
+
+    def get_altered_at(self, index):
+        return self.altered[index % len(self.notes)]
+
+    def reset_altered(self):
+        self.altered = [False] * len(self.notes)
 
 class Clause:
 
@@ -29,17 +39,13 @@ class Clause:
         self.subject = subject
 
     def matches(self, beat):
-        name = self.indexed.part.name
-        if name not in beat:
-            return False
-
-        current_index = beat[name].index
         part = self.indexed.part
-        note = part.note_at(current_index + self.indexed.index)
+        current_index = beat[part.name].index
+        note = part.get_note_at(current_index + self.indexed.index)
 
         if isinstance(self.subject, Indexed):
             current_subject_index = beat[self.subject.part.name].index
-            subject_note = self.subject.part.note_at(current_subject_index +
+            subject_note = self.subject.part.get_note_at(current_subject_index +
                                                      self.subject.index)
         else:
             subject_note = self.subject
@@ -57,9 +63,11 @@ class Rule:
             if not clause.matches(beat):
                 return
         for alter_item in rhs:
+            if not alter_item.can_alter():
+                return
+        for alter_item in rhs:
             name = alter_item.indexed.part.name
-            part = beat[name].part
-            alter_item.alter(part)
+            alter_item.alter(beat)
 
 class Indexed:
 
@@ -72,6 +80,25 @@ class AlterItem:
     def __init__(self, indexed, subject):
         self.indexed = indexed
         self.subject = subject
+
+    def can_alter(self, beat):
+        part = self.indexed.part
+        current_index = beat[part.name].index
+        return not part.get_altered_at(current_index + self.indexed.index)
+
+    def alter(self, beat):
+        part = self.indexed.part
+        current_index = beat[part.name].index
+        part = self.indexed.part
+
+        if isinstance(self.subject, Indexed):
+            current_subject_index = beat[self.subject.part.name].index
+            subject_note = self.subject.part.get_note_at(current_subject_index +
+                                                         self.subject.index)
+        else:
+            subject_note = self.subject
+
+        part.set_note_at(current_index + self.indexed.index, subject_note)
 
 class Comparator:
 
@@ -91,5 +118,5 @@ class Polyphony:
 
     def reset_altered(self):
         for part in self.parts:
-            part.altered = False
+            part.reset_altered()
 

@@ -100,7 +100,7 @@ def p_note_number(p):
 
 def p_note_pause(p):
     'note : PAUSE'
-    p[0] = Pause()
+    p[0] = Part.PAUSE
 
 def p_property(p):
     'property : ID DOT ID'
