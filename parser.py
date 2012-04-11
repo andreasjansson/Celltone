@@ -1,54 +1,8 @@
 import ply.lex as lex
 import ply.yacc as yacc
 import sys
-
-class Part:
-
-    def __init__(self, notes):
-        self.notes = notes
-        self.properties = {
-            'channel': 0,
-            'velocity' : 127,
-            }
-
-    def set_property(self, name, value):
-        if name not in self.properties:
-            raise Exception('Property undefined: ' + name)
-        self.properties[name] = value
-
-class Pause:
-    pass
-
-class Clause:
-
-    def __init__(self, indexed, comparator, subject):
-        self.indexed = indexed
-        self.comparator = comparator
-        self.subject = subject
-
-class Rule:
-
-    def __init__(self, lhs, rhs):
-        self.lhs = lhs
-        self.rhs = rhs
-
-class Indexed:
-
-    def __init__(self, part, index):
-        self.part = part
-        self.index = index
-
-class AlterItem:
-
-    def __init__(self, indexed, subject):
-        self.indexed = indexed
-        self.subject = subject
-
-class Comparator:
-
-    EQ = 1
-    NEQ = 2
-
+from model import *
+from engine import *
 
 tokens = (
     'ID', 'ASSIGN', 'LSQUARE', 'RSQUARE',
@@ -71,18 +25,18 @@ t_DOT       = r'\.'
 t_ignore = ' \t'
 
 def t_NUMBER(t):
-    r'\-?\d+'
+    r'[-+]?\d+'
     t.value = int(t.value)
     return t
 
 def t_EQ(t):
     r'=='
-    t.value = Comparator.EQ
+    t.value = Comparator.eq
     return t
 
 def t_NEQ(t):
     r'!='
-    t.value = Comparator.NEQ
+    t.value = Comparator.neq
     return t
 
 def t_COMMENT(t):
@@ -119,7 +73,7 @@ def p_empty(p):
 
 def p_partassign(p):
     'partassign : ID ASSIGN notelist'
-    parts[p[1]] = Part(p[3])
+    parts[p[1]] = Part(p[1], p[3])
 
 def p_notelist(p):
     'notelist : LSQUARE notes RSQUARE'
