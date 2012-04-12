@@ -1,10 +1,12 @@
 # TODO:
-# Run main, engine and midi player in separate threads
+# Threads: main, engine, gui
 # Put parser in class
 # Tempo as argparse option
 # Debug options
 # Handle errors
 #   a = [], etc.
+#   general parser and lexer errors
+# Octava as property of part
 
 import ply.lex as lex
 import ply.yacc as yacc
@@ -188,10 +190,25 @@ lines = ''.join(sys.stdin.readlines())
 yacc.parse(lines)
 
 engine = Engine(parts.values(), rules)
+gui = Gui(parts, rules)
 player = Player(120)
+logger = None
+sleep_time = seconds = (60.0 / self.bpm) * (self.subdivision * 4)
 
 while True:
     midi_notes = engine.get_midi_notes()
-    engine.debug()
-    player.play(midi_notes)
+    #engine.debug()
+
+    for t, notes in midi_notes.iteritems():
+        if gui:
+            gui.step(t)
+        for note in notes:
+            player.noteon(note)
+        time.sleep(sleep_time)
+        for note in notes:
+            player.noteoff(note)
+    
     engine.iterate()
+    if gui:
+        log = engine.log
+        gui.visualise_log(log)
