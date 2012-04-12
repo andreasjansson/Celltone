@@ -139,6 +139,35 @@ class TestModel(unittest.TestCase):
         self.assertEquals([_, 0, _, 1, _, 0, _, 3], a.notes)
         self.assertEquals([0, 3, _], b.notes)
 
+    def test_engine_iterate_multiple(self):
+        _ = PAUSE # for readability
+        
+        a = Part('a', [0, _, 1, _, 0, _, 3, _])
+        b = Part('b', [0, 3, _])
+        parts = [a, b]
+
+        lhs = [Clause(Indexed(a, 0), Comparator.eq, Indexed(b, 0)),
+               Clause(Indexed(a, 1), Comparator.eq, _)]
+        rhs = [Modifier(Indexed(a, 0), Indexed(a, 0))]
+        rule1 = Rule(lhs, rhs)
+
+        lhs = [Clause(Indexed(a, -1), Comparator.neq, _),
+               Clause(Indexed(a, 0), Comparator.eq, _)]
+        rhs = [Modifier(Indexed(a, -1), _),
+               Modifier(Indexed(a, 0), Indexed(a, -1))]
+        rule2 = Rule(lhs, rhs)
+
+        rules = [rule1, rule2]
+
+        engine = Engine(parts, rules)
+        engine.iterate()
+
+        self.assertEquals(0, a.pointer)
+        self.assertEquals(2, b.pointer)
+
+        self.assertEquals([0, _, _, 1, _, 0, _, 3], a.notes)
+        self.assertEquals([0, 3, _], b.notes)
+
 
 if __name__ == '__main__':
     unittest.main()
