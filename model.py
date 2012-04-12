@@ -128,9 +128,9 @@ class Comparator:
 class MidiNote:
 
     def __init__(self, note, channel, velocity):
-        self.note = note
-        self.channel = channel
-        self.velocity = velocity
+        self.note = int(note)
+        self.channel = int(channel)
+        self.velocity = int(velocity)
 
 class Engine:
 

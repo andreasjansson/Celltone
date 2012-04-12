@@ -1,8 +1,14 @@
+# TODO:
+# Run main, engine and midi player in separate threads
+# Put parser in class
+# Tempo as argparse option
+# Debug options
+
 import ply.lex as lex
 import ply.yacc as yacc
 import sys
 from model import *
-from engine import *
+from midi import *
 
 tokens = (
     'ID', 'ASSIGN', 'LSQUARE', 'RSQUARE',
@@ -169,7 +175,7 @@ def p_modifiers_empty(p):
 
 def p_modifier(p):
     'modifier : indexed ASSIGN subject'
-    p[0] = Modifier(p[1], p[2])
+    p[0] = Modifier(p[1], p[3])
 
 def p_error(p):
     print "Syntax error on line %d, lexpos %d, token %s" % (p.lineno, p.lexpos, p.type)
@@ -177,8 +183,12 @@ def p_error(p):
 yacc.yacc()
 
 lines = ''.join(sys.stdin.readlines())
-print(lines)
-#yacc.parse(lines, debug = True)
 yacc.parse(lines)
 
-print(parts)
+engine = Engine(parts.values(), rules)
+player = Player(120)
+
+while True:
+    midi_notes = engine.get_midi_notes()
+    player.play(midi_notes)
+    engine.iterate()
