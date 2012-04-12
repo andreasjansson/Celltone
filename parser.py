@@ -3,6 +3,8 @@
 # Put parser in class
 # Tempo as argparse option
 # Debug options
+# Handle errors
+#   a = [], etc.
 
 import ply.lex as lex
 import ply.yacc as yacc
@@ -110,7 +112,7 @@ def p_note_pause(p):
 
 def p_property(p):
     'property : ID DOT ID'
-    p[0] = {part: parts[p[1]], prop: p[3]}
+    p[0] = {'part': parts[p[1]], 'prop': p[3]}
 
 def p_propassign_number(p):
     'propassign : property ASSIGN NUMBER'
@@ -190,5 +192,6 @@ player = Player(120)
 
 while True:
     midi_notes = engine.get_midi_notes()
+    engine.debug()
     player.play(midi_notes)
     engine.iterate()

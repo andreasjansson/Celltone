@@ -180,3 +180,7 @@ class Engine:
         for part in self.parts:
             part.pointer = (part.pointer + self.iteration_length) % len(part.notes)
 
+    def debug(self):
+        for part in self.parts:
+            print("%s: [%s]" % (part.name, ", ".join(map(str, part.notes))))
+        print("")

@@ -22,10 +22,6 @@ class Player:
                 self.noteoff(note)
 
     def noteon(self, midi_note):
-
-        print(midi_note.channel,
-              midi_note.note + 12 * self.octava, midi_note.velocity)
-
         self.midi_out.WriteShort(0x90 + midi_note.channel,
                                  midi_note.note + 12 * self.octava, midi_note.velocity)
 
