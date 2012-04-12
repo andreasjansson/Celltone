@@ -100,7 +100,7 @@ def p_note_number(p):
 
 def p_note_pause(p):
     'note : PAUSE'
-    p[0] = Part.PAUSE
+    p[0] = PAUSE
 
 def p_property(p):
     'property : ID DOT ID'
@@ -152,24 +152,24 @@ def p_subject(p):
     p[0] = p[1]
 
 def p_rhs(p):
-    'rhs : LCURLY alteritems RCURLY'
+    'rhs : LCURLY modifiers RCURLY'
     p[0] = p[2]
 
-def p_alteritems_list(p):
-    'alteritems : alteritem COMMA alteritems'
+def p_modifiers_list(p):
+    'modifiers : modifier COMMA modifiers'
     p[0] = [p[1]] + p[3]
 
-def p_alteritems_single(p):
-    'alteritems : alteritem'
+def p_modifiers_single(p):
+    'modifiers : modifier'
     p[0] = [p[1]]
 
-def p_alteritems_empty(p):
-    'alteritems : empty'
+def p_modifiers_empty(p):
+    'modifiers : empty'
     p[0] = []
 
-def p_alteritem(p):
-    'alteritem : indexed ASSIGN subject'
-    p[0] = AlterItem(p[1], p[2])
+def p_modifier(p):
+    'modifier : indexed ASSIGN subject'
+    p[0] = Modifier(p[1], p[2])
 
 def p_error(p):
     print "Syntax error on line %d, lexpos %d, token %s" % (p.lineno, p.lexpos, p.type)
