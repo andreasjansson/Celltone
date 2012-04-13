@@ -56,11 +56,11 @@ class Clause:
     def matches(self, beat):
         part = self.indexed.part
         current_index = beat[part.name].index
-        note = part.get_note_at(current_index + self.indexed.index)
+        note = part.get_note_copy_at(current_index + self.indexed.index)
 
         if isinstance(self.subject, Indexed):
             current_subject_index = beat[self.subject.part.name].index
-            subject_note = self.subject.part.get_note_at(current_subject_index +
+            subject_note = self.subject.part.get_note_copy_at(current_subject_index +
                                                      self.subject.index)
         else:
             subject_note = self.subject

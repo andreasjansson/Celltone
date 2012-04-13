@@ -102,8 +102,6 @@ def p_notes_empty(p):
 def p_note_number(p):
     'note : NUMBER'
     note = p[1]
-    if note < 0 or note > 127:
-        raise Exception("Note values must lie between 0 and 127")
     p[0] = note
 
 def p_note_pause(p):
