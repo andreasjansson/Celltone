@@ -3,4 +3,4 @@ Celltone
 More docs (and code) will come, but for now:
 
 * Install dependencies (portmidi, pypm, ply)
-* python celltone.py < example.ct
+* python parser.py < example.ct
