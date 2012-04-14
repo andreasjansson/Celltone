@@ -41,7 +41,7 @@ e.channel = 3
 {e[0] == -4} => {e[0] = -5, e[2] = 7}
 {e[0] == -5} => {e[0] = 0, e[2] = 12}
 
-# when the first note in b is 27 and the last part in a is 26,
+# when the first note in b is 27 and the last note in a is 26,
 # we assume that both parts have been sorted, and we start the bass part.
 {x[0] == 0, b[0] == 27, a[-1] == 26} => {e[0] = 0, e[2] = 12}
 
