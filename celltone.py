@@ -15,11 +15,10 @@ def main():
 
     while True:
         midi_notes = engine.get_midi_notes()
-        engine.debug()
-        player.play(midi_notes)
+        player_thread = player.play(midi_notes)
         engine.iterate()
-
-    
+        engine.debug()
+        player_thread.join()
 
 if __name__ == '__main__':
     main()

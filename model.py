@@ -1,4 +1,5 @@
 from copy import copy
+import threading
 
 PAUSE = '_'
 
@@ -211,6 +212,7 @@ class MidiNote:
         self.note = int(note)
         self.channel = int(channel)
         self.velocity = int(velocity)
+
 
 class Engine:
 
