@@ -1,3 +1,8 @@
+# Bubblesort - Celltone example
+
+# Two parts with 32 note positions each are sorted using a
+# version of bubblesort. Initially both parts are reversed.
+
 # melody
 a = [26, 24, 22, 20, 19, 17, 15, 14, 12, 10, 8, 7, 5, 3, 2, 0, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _]
 b = [_, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, 2, 3, 5, 7, 8, 10, 12, 14, 15, 17, 19, 20, 22, 24, 26, 27]
@@ -7,11 +12,17 @@ b.octava = 5
 b.channel = 1
 
 # guards
+# since celltone reads parts in a cyclic fashion, it has no inherent knowledge of
+# boundaries. that's why we need to have a muted part with a note at the start and
+# a note at the end. without the guards, notes would be swapped at the boundaries,
+# and the sort would never succeed.
 x = [0, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, _, 1]
 x.velocity = 0
 
-{x[0] != 0, x[-1] != 1, a[-1] > a[0]} => {a[-1] = a[0], a[0] = a[-1]}
-{x[0] != 0, x[-1] != 1, b[-1] < b[0]} => {b[-1] = b[0], b[0] = b[-1]}
+# this is where the actual sorting happens. note that _ (pause) is defined to be
+# less than any note.
+{x[0] != 0, x[-1] != 1, a[-1] > a[0]} => {a[-1] = a[0], a[0] = a[-1]} # ascending
+{x[0] != 0, x[-1] != 1, b[-1] < b[0]} => {b[-1] = b[0], b[0] = b[-1]} # descending
 
 # drums
 d = [0, _, 8, 8, 0, _, _, 0, _, _, 0, _, 0, 8, 10, 8]
@@ -19,14 +30,19 @@ d.channel = 2
 d.octava = 3
 
 # bass
+# comes in once the notes have been sorted.
 e = [_, _, _, _]
 e.octava = 3
 e.channel = 3
 
+# simple bass progression
 {e[0] == 0} => {e[0] = 2, e[2] = 14}
 {e[0] == 2} => {e[0] = -4, e[2] = 8}
 {e[0] == -4} => {e[0] = -5, e[2] = 7}
 {e[0] == -5} => {e[0] = 0, e[2] = 12}
+
+# when the first note in b is 27 and the last part in a is 26,
+# we assume that both parts have been sorted, and we start the bass part.
 {x[0] == 0, b[0] == 27, a[-1] == 26} => {e[0] = 0, e[2] = 12}
 
 <tempo> = 124
