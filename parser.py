@@ -225,18 +225,11 @@ def p_error(p):
 
 yacc.yacc()
 
-lines = ''.join(sys.stdin.readlines())
-yacc.parse(lines)
-
-engine = Engine(parts.values(), rules)
-iterlength = config.get('iterlength')
-if iterlength is not None:
-    engine.iteration_length = config.get('iterlength')
-
-player = Player(config.get('tempo'), config.get('subdiv'))
-
-while True:
-    midi_notes = engine.get_midi_notes()
-    engine.debug()
-    player.play(midi_notes)
-    engine.iterate()
+class Parser:
+    def parse(self, text):
+        global parts, rules, config
+        parts = {}
+        rules = []
+        config = Config()
+        yacc.parse(text)
+        return (parts, rules, config)

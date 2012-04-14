@@ -215,6 +215,8 @@ class MidiNote:
 class Engine:
 
     def __init__(self, parts, rules):
+        if type(parts) is dict:
+            parts = parts.values()
         self.parts = parts
         self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts, 0)
         self.rules = rules
