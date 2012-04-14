@@ -3,6 +3,16 @@ import unittest
 
 class TestModel(unittest.TestCase):
 
+    def test_comparators(self):
+        _ = PAUSE
+        self.assertTrue(Comparator.lt(_, 0))
+        self.assertTrue(Comparator.lt(_, -100))
+        self.assertTrue(Comparator.lte(_, 1))
+        self.assertTrue(Comparator.gt(0, _))
+        self.assertTrue(Comparator.gt(-100, _))
+        self.assertTrue(Comparator.gte(1, _))
+        self.assertFalse(Comparator.lt(0, _))
+
     def test_clause_number(self):
         a = Part('a', [1,2,3,4])
         clause = Clause(Indexed(a, -1), Comparator.eq, 1)
@@ -96,7 +106,9 @@ class TestModel(unittest.TestCase):
         _ = PAUSE # for readability
         
         a = Part('a', [0, _, 1, _, 0, _, 3, _])
+        a.set_property('octava', 0)
         b = Part('b', [0, 3, _])
+        b.set_property('octava', 0)
         parts = [a, b]
 
         engine = Engine(parts, [])

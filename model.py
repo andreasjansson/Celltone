@@ -2,15 +2,38 @@ from copy import copy
 
 PAUSE = '_'
 
+class Config:
+
+    def __init__(self):
+        # defaults
+        self.options = {
+            'tempo': 120,
+            'subdiv': 16,
+            'iterlength': None
+            }
+
+    def set(self, name, value):
+        if name not in self.options:
+            raise Exception('Unknown confuration option: ' + name)
+        self.options[name] = value
+
+    def get(self, name):
+        if name not in self.options:
+            raise Exception('Unknown confuration option: ' + name)
+        return self.options[name]
+
 class Part:
 
     def __init__(self, name, notes):
         self.name = name
         self.notes = notes
         self.create_notes_copy()
+
+        # defaults
         self.properties = {
             'channel': 0,
-            'velocity' : 127,
+            'velocity': 100,
+            'octava' : 4,
             }
         self.pointer = 0
         self.altered = None
@@ -41,6 +64,7 @@ class Part:
         note = self.notes[index % len(self.notes)]
         if note == PAUSE:
             return None
+        note = note + 12 * self.properties['octava']
         return MidiNote(note, self.properties['channel'], self.properties['velocity'])
 
     def create_notes_copy(self):
@@ -65,7 +89,10 @@ class Clause:
         else:
             subject_note = self.subject
         
-        return self.comparator(note, subject_note)
+        return self.comparator.compare(note, subject_note)
+
+    def __str__(self):
+        return '%s %s %s' % (str(self.indexed), str(self.comparator), str(self.subject))
 
 class Rule:
 
@@ -84,11 +111,21 @@ class Rule:
             name = modifier.indexed.part.name
             modifier.alter(beat)
 
+        print str(self)
+
+    def __str__(self):
+        lhs = ', '.join(map(str, self.lhs))
+        rhs = ', '.join(map(str, self.rhs))
+        return '{%s} => {%s}' % (lhs, rhs)
+
 class Indexed:
 
     def __init__(self, part, index):
         self.part = part
         self.index = index
+
+    def __str__(self):
+        return '%s[%d]' % (self.part.name, self.index)
 
 class Modifier:
 
@@ -115,15 +152,58 @@ class Modifier:
 
         part.set_note_at(current_index + self.indexed.index, subject_note)
 
+    def __str__(self):
+        if self.indexed == self.subject:
+            return str(self.indexed)
+        return '%s = %s' % (str(self.indexed), str(self.subject))
+
 class Comparator:
+    def compare(self, note1, note2):
+        raise NotImplementedError()
 
-    @staticmethod
-    def eq(note1, note2):
+class CompEQ(Comparator):
+    def compare(self, note1, note2):
         return note1 == note2
+    def __str__(self):
+        return '=='
 
-    @staticmethod
-    def neq(note1, note2):
+class CompNEQ(Comparator):
+    def compare(self, note1, note2):
         return note1 != note2
+    def __str__(self):
+        return '!='
+    
+class CompLT(Comparator):
+    def compare(self, note1, note2):
+        if note1 == PAUSE:
+            note1 = float("-inf")
+        if note2 == PAUSE:
+            note2 = float("-inf")
+        return note1 < note2
+    def __str__(self):
+        return '<'
+
+class CompLTE(Comparator):
+    def compare(self, note1, note2):
+        return Comparator.eq(note1, note2) or Comparator.lt(note1, note2)
+    def __str__(self):
+        return '<='
+
+class CompGT(Comparator):
+    def compare(self, note1, note2):
+        if note1 == PAUSE:
+            note1 = float("-inf")
+        if note2 == PAUSE:
+            note2 = float("-inf")
+        return note1 > note2
+    def __str__(self):
+        return '>'
+
+class CompGTE(Comparator):
+    def compare(self, note1, note2):
+        return Comparator.eq(note1, note2) or Comparator.gt(note1, note2)
+    def __str__(self):
+        return '>='
 
 class MidiNote:
 

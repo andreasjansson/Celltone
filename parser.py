@@ -15,8 +15,9 @@ from midi import *
 tokens = (
     'ID', 'ASSIGN', 'LSQUARE', 'RSQUARE',
     'LCURLY', 'RCURLY', 'EQ', 'NEQ',
+    'LT', 'LTE', 'GT', 'GTE',
     'PAUSE', 'COMMA', 'BECOMES', 'DOT',
-    'NUMBER'
+    'NUMBER', 'OPTION',
     )
 
 t_ID        = r'[a-zA-Z][a-zA-Z0-9_]*'
@@ -37,14 +38,39 @@ def t_NUMBER(t):
     t.value = int(t.value)
     return t
 
+def t_OPTION(t):
+    r'<[a-zA-Z][a-zA-Z0-9_]*>'
+    t.value = t.value[1:-1]
+    return t
+
 def t_EQ(t):
     r'=='
-    t.value = Comparator.eq
+    t.value = CompEQ()
     return t
 
 def t_NEQ(t):
     r'!='
-    t.value = Comparator.neq
+    t.value = CompNEQ()
+    return t
+
+def t_LT(t):
+    r'<'
+    t.value = CompLT()
+    return t
+
+def t_LTE(t):
+    r'<='
+    t.value = CompLTE()
+    return t
+
+def t_GT(t):
+    r'>'
+    t.value = CompGT()
+    return t
+
+def t_GTE(t):
+    r'>='
+    t.value = CompGTE()
     return t
 
 def t_COMMENT(t):
@@ -65,6 +91,7 @@ lex.lex()
 
 parts = {}
 rules = []
+config = Config()
 
 def p_program(p):
     '''program : program statement
@@ -73,7 +100,8 @@ def p_program(p):
 def p_statement(p):
     '''statement : partassign
                  | propassign
-                 | rule'''
+                 | rule
+                 | confassign'''
 
 def p_empty(p):
     'empty :'
@@ -81,6 +109,8 @@ def p_empty(p):
 
 def p_partassign(p):
     'partassign : ID ASSIGN notelist'
+    if p[1] in parts:
+        raise Exception('Cannot redefine part: ' + p[1])
     parts[p[1]] = Part(p[1], p[3])
 
 def p_notelist(p):
@@ -149,7 +179,11 @@ def p_indexed(p):
 
 def p_comparator(p):
     '''comparator : EQ
-                  | NEQ'''
+                  | NEQ
+                  | LT
+                  | LTE
+                  | GT
+                  | GTE'''
     p[0] = p[1]
 
 def p_subject(p):
@@ -173,12 +207,21 @@ def p_modifiers_empty(p):
     'modifiers : empty'
     p[0] = []
 
-def p_modifier(p):
+def p_modifier_assign(p):
     'modifier : indexed ASSIGN subject'
     p[0] = Modifier(p[1], p[3])
 
+def p_modifier_touch(p):
+    'modifier : indexed'
+    p[0] = Modifier(p[1], p[1])
+
+def p_confassign_number(p):
+    'confassign : OPTION ASSIGN NUMBER'
+    config.set(p[1], p[3])
+
 def p_error(p):
     print "Syntax error on line %d, lexpos %d, token %s" % (p.lineno, p.lexpos, p.type)
+    sys.exit(1)
 
 yacc.yacc()
 
@@ -186,7 +229,11 @@ lines = ''.join(sys.stdin.readlines())
 yacc.parse(lines)
 
 engine = Engine(parts.values(), rules)
-player = Player(120)
+iterlength = config.get('iterlength')
+if iterlength is not None:
+    engine.iteration_length = config.get('iterlength')
+
+player = Player(config.get('tempo'), config.get('subdiv'))
 
 while True:
     midi_notes = engine.get_midi_notes()

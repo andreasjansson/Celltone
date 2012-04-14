@@ -4,10 +4,9 @@ import pypm
 
 class Player:
 
-    def __init__(self, bpm, subdivision = 1.0/8, octava = 4):
+    def __init__(self, bpm, subdivision = 8):
         self.bpm = float(bpm)
-        self.subdivision = subdivision
-        self.octava = octava
+        self.subdivision = 1.0 / subdivision
 
         pypm.Initialize()
         dev = pypm.GetDefaultOutputDeviceID()
@@ -23,11 +22,11 @@ class Player:
 
     def noteon(self, midi_note):
         self.midi_out.WriteShort(0x90 + midi_note.channel,
-                                 midi_note.note + 12 * self.octava, midi_note.velocity)
+                                 midi_note.note, midi_note.velocity)
 
     def noteoff(self, midi_note):
         self.midi_out.WriteShort(0x80 + midi_note.channel,
-                                 midi_note.note + 12 * self.octava, 0)
+                                 midi_note.note, 0)
 
     def sleep(self):
         seconds = (60.0 / self.bpm) * (self.subdivision * 4)
