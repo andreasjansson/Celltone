@@ -7,10 +7,10 @@ b = [12, _, _, _, _, _]
 # backing right
 c = [_, _, _, _, _, _, _, _, _, _]
 
-# bass
+# drums, kick = -12, snare = -10
 d = [_, _, _, _]
 
-# drums, kick = -12, snare = -10
+# bass
 e = [_, _, -12, _]
 
 
