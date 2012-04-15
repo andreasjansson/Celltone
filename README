@@ -1,6 +1,0 @@
-Celltone
-
-More docs (and code) will come, but for now:
-
-* Install dependencies (portmidi, pypm, ply)
-* python celltone.py < examples/sort.ct
