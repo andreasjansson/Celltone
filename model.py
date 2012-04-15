@@ -8,8 +8,8 @@ class Logger:
     def __init__(self):
         self.items = []
 
-    def add(self, item):
-        self.items.append(item)
+    def add(self, rule, beat_before, beat_after):
+        self.items.append((rule, beat_before, beat_after))
 
     def clear(self):
         self.items = []
@@ -85,7 +85,7 @@ class Part:
         self.notes_copy = copy(self.notes)
 
     def __str__(self):
-        return '%s: [%s]' % (self.name, ', '.join(map(str, self.notes)))
+        return '%s = [%s]' % (self.name, ', '.join(map(str, self.notes)))
 
 class Clause:
 
@@ -124,11 +124,14 @@ class Rule:
         for modifier in self.rhs:
             if not modifier.can_alter(beat):
                 return
+
+        beat_before = copy(beat)
+
         for modifier in self.rhs:
             name = modifier.indexed.part.name
             modifier.alter(beat)
 
-        logger.add(str(self))
+        logger.add(self, beat_before, copy(beat))
 
     def __str__(self):
         lhs = ', '.join(map(str, self.lhs))
@@ -233,10 +236,8 @@ class MidiNote:
 class Engine:
 
     def __init__(self, parts, rules):
-        if type(parts) is dict:
-            parts = parts.values()
         self.parts = parts
-        self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts, 0)
+        self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts.values(), 0)
         self.rules = rules
         self.original_parts = copy(parts)
 
@@ -244,7 +245,7 @@ class Engine:
         midi_notes = []
         for i in range(self.iteration_length):
             midi_notes.append([])
-            for part in self.parts:
+            for part in self.parts.values():
                 midi_note = part.get_midi_note_at(part.pointer + i)
                 if midi_note:
                     midi_notes[i].append(midi_note)
@@ -261,24 +262,24 @@ class Engine:
         self.update_pointers()
 
     def reset_altered(self):
-        for part in self.parts:
+        for part in self.parts.values():
             part.reset_altered()
 
     def beats(self):
         beats = []
         for i in range(self.iteration_length):
             beats.append({})
-            for part in self.parts:
+            for part in self.parts.values():
                 index = (part.pointer + i) % len(part.notes)
                 beats[i][part.name] = Indexed(part, index)
         return beats
 
     def notes_read_copy(self):
-        for part in self.parts:
+        for part in self.parts.values():
             part.create_notes_copy()
 
     def update_pointers(self):
-        for part in self.parts:
+        for part in self.parts.values():
             part.pointer = (part.pointer + self.iteration_length) % len(part.notes)
 
     def reset_parts(self):

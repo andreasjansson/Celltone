@@ -1,14 +1,20 @@
-from model import *
+from model import Engine, logger
 from parser import Parser, ParseError
 from midi import Player
 import sys
 import signal
 import time
+import os.path
 
 class Celltone:
 
-    def __init__(self, code):
+    def __init__(self, code, verbosity = 0):
         self.parser = Parser()
+        if verbosity > 0:
+            from verbose import Verbose
+            self.verbose = Verbose(verbosity)
+        else:
+            self.verbose = None
 
         signal.signal(signal.SIGINT, self.exit)
 
@@ -33,8 +39,8 @@ class Celltone:
             try:
                 parts, rules, config = self.parser.parse(code)
             except ParseError as e:
-                sys.stderr.write(str(e))
-                sys.exit(1)
+                die(str(e))
+
         else:
             parts = []
             rules = []
@@ -59,6 +65,10 @@ class Celltone:
                     self.leftover_midi_notes = None
                 else:
                     midi_notes = self.engine.get_midi_notes()
+
+                if self.verbose:
+                    self.verbose.print_log(logger.items)
+                    self.verbose.print_parts(self.engine.parts)
 
                 self.player.play(midi_notes)
                 logger.clear()
@@ -91,6 +101,37 @@ class Celltone:
         self.player.stop()
         self.engine.reset_parts()
 
+
+def die(string, return_code = 1):
+    sys.stderr.write(str(e))
+    sys.exit(return_code)
+
+
 if __name__ == '__main__':
-    code = ''.join(sys.stdin.readlines())
-    Celltone(code)
+    import argparse
+    parser = argparse.ArgumentParser(description = 'Process Celltone code')
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-v', action = 'store_true', help = 'verbose')
+    group.add_argument('-vv', action = 'store_true', help = 'more verbose')
+    group.add_argument('-vvv', action = 'store_true', help = 'even more verbose')
+    parser.add_argument('filename', nargs = '?', help = 'if omitted reads from stdin')
+    args = parser.parse_args()
+
+    verbosity = 0
+    if args.v:
+        verbosity = 1
+    if args.vv:
+        verbosity = 2
+    if args.vvv:
+        verbosity = 3
+
+    if not args.filename or args.filename == '-':
+        code = ''.join(sys.stdin.readlines())
+    else:
+        if not os.path.exists(args.filename):
+            die('No such file: ' + args.filename)
+        with open(args.filename) as f:
+            code = ''.join(f.readlines())
+
+    Celltone(code, verbosity)
+
