@@ -82,9 +82,7 @@ def t_newline(t):
     t.lexer.lineno += 1
 
 def t_error(t):
-    print("Illegal character '%s'" %
-          t.value[0])
-    sys.exit(1)
+    raise ParseError("Illegal character '%s'" % t.value[0])
 
 lex.lex()
 
@@ -110,7 +108,7 @@ def p_empty(p):
 def p_partassign(p):
     'partassign : ID ASSIGN notelist'
     if p[1] in parts:
-        raise Exception('Cannot redefine part: ' + p[1])
+        raise ParseError('Cannot redefine part: ' + p[1])
     parts[p[1]] = Part(p[1], p[3])
 
 def p_notelist(p):
@@ -147,7 +145,10 @@ def p_propassign_number(p):
     part = p[1]['part']
     prop = p[1]['prop']
     value = p[3]
-    part.set_property(prop, value)
+    try:
+        part.set_property(prop, value)
+    except Exception as e:
+        raise ParseError(str(e))
 
 def p_rule(p):
     'rule : lhs BECOMES rhs'
@@ -217,19 +218,25 @@ def p_modifier_touch(p):
 
 def p_confassign_number(p):
     'confassign : OPTION ASSIGN NUMBER'
-    config.set(p[1], p[3])
+    try:
+        config.set(p[1], p[3])
+    except Exception as e:
+        raise ParseError(str(e))
 
 def p_error(p):
-    print "Syntax error on line %d, lexpos %d, token %s" % (p.lineno, p.lexpos, p.type)
-    sys.exit(1)
+    raise ParseError("Syntax error on line %d, lexpos %d, token %s" %
+                     (p.lineno, p.lexpos, p.type))
 
 yacc.yacc()
 
 class Parser:
-    def parse(self, text):
+    def parse(self, code):
         global parts, rules, config
         parts = {}
         rules = []
         config = Config()
-        yacc.parse(text)
+        yacc.parse(code)
         return (parts, rules, config)
+
+class ParseError(Exception):
+    pass

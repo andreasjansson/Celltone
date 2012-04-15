@@ -11,12 +11,18 @@ class Player(threading.Thread):
 
     def __init__(self, bpm, subdivision):
         self.bpm = float(bpm)
+        self.thread = None
         self.subdivision = 1.0 / subdivision
 
     def play(self, midi_notes):
         self.thread = PlayerThread(self, midi_notes)
         self.thread.start()
         return self.thread
+
+    def stop(self):
+        leftover_midi_notes = self.thread.midi_notes
+        self.thread.midi_notes = []
+        return leftover_midi_notes
 
     def noteon(self, midi_note):
         Player.midi_out.WriteShort(0x90 + midi_note.channel,
@@ -35,7 +41,12 @@ class PlayerThread(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        for t, notes in self.midi_notes.iteritems():
+        i = 0
+        while len(self.midi_notes) > 0:
+            notes = self.midi_notes[0]
+            #print(i, len(self.midi_notes))
+            i += 1
+            self.midi_notes = self.midi_notes[1:]
             for note in notes:
                 self.player.noteon(note)
 

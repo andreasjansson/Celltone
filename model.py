@@ -3,6 +3,19 @@ import threading
 
 PAUSE = '_'
 
+class Logger:
+
+    def __init__(self):
+        self.items = []
+
+    def add(self, item):
+        self.items.append(item)
+
+    def clear(self):
+        self.items = []
+
+logger = Logger()
+
 class Config:
 
     def __init__(self):
@@ -71,6 +84,9 @@ class Part:
     def create_notes_copy(self):
         self.notes_copy = copy(self.notes)
 
+    def __str__(self):
+        return '%s: [%s]' % (self.name, ', '.join(map(str, self.notes)))
+
 class Clause:
 
     def __init__(self, indexed, comparator, subject):
@@ -112,7 +128,7 @@ class Rule:
             name = modifier.indexed.part.name
             modifier.alter(beat)
 
-        print str(self)
+        logger.add(str(self))
 
     def __str__(self):
         lhs = ', '.join(map(str, self.lhs))
@@ -222,11 +238,12 @@ class Engine:
         self.parts = parts
         self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts, 0)
         self.rules = rules
+        self.original_parts = copy(parts)
 
     def get_midi_notes(self):
-        midi_notes = {}
+        midi_notes = []
         for i in range(self.iteration_length):
-            midi_notes[i] = []
+            midi_notes.append([])
             for part in self.parts:
                 midi_note = part.get_midi_note_at(part.pointer + i)
                 if midi_note:
@@ -264,7 +281,5 @@ class Engine:
         for part in self.parts:
             part.pointer = (part.pointer + self.iteration_length) % len(part.notes)
 
-    def debug(self):
-        for part in self.parts:
-            print("%s: [%s]" % (part.name, ", ".join(map(str, part.notes))))
-        print("")
+    def reset_parts(self):
+        self.parts = self.original_parts
