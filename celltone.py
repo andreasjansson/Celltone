@@ -1,43 +1,28 @@
 from model import *
 from parser import Parser, ParseError
 from midi import Player
-from gui import Gui
 import sys
 import signal
 import time
 
 class Celltone:
 
-    def __init__(self, code, has_gui):
+    def __init__(self, code):
         self.parser = Parser()
 
         signal.signal(signal.SIGINT, self.exit)
-
-        if has_gui:
-            self.gui = Gui()
-            self.gui.on_play = self.play
-            self.gui.on_pause = self.pause
-            self.gui.on_stop = self.stop
-            self.gui.on_compile = self.set_code
-            self.gui.on_close = self.exit
-        else:
-            self.gui = None
 
         self.leftover_midi_notes = None
         self.is_playing = False
         self.set_code(code)
 
-        if not self.gui:
-            self.play()
-
+        self.play()
         self.loop()
 
     def exit(self, signal = None, frame = None):
         self.stop()
-        if self.gui:
-            self.gui.destroy()
 
-        # a harmless exception is always thrown here. let's hide it.
+        # harmless exceptions may be thrown here. surpress
         class Devnull(object):
             def write(self, _): pass
         sys.stderr = Devnull()
@@ -48,12 +33,8 @@ class Celltone:
             try:
                 parts, rules, config = self.parser.parse(code)
             except ParseError as e:
-                if self.gui:
-                    self.gui.show_parse_error(e)
-                else:
-                    sys.stderr.write(str(e))
-                    sys.exit(1)
-                pass
+                sys.stderr.write(str(e))
+                sys.exit(1)
         else:
             parts = []
             rules = []
@@ -65,11 +46,11 @@ class Celltone:
             self.engine.iteration_length = iterlength
         self.player = Player(config.get('tempo'), config.get('subdiv'))
 
-        if self.gui:
-            self.gui.set_parts(parts)
-
     def loop(self, initial_midi_notes = None):
-
+        '''
+        This architecture makes it possible to control Celltone
+        from another thread, by calling play(), pause() and stop().
+        '''
         while True:
             if self.is_playing:
 
@@ -78,9 +59,6 @@ class Celltone:
                     self.leftover_midi_notes = None
                 else:
                     midi_notes = self.engine.get_midi_notes()
-
-                if self.gui:
-                    self.gui.show_log(logger.items)
 
                 self.player.play(midi_notes)
                 logger.clear()
@@ -115,4 +93,4 @@ class Celltone:
 
 if __name__ == '__main__':
     code = ''.join(sys.stdin.readlines())
-    Celltone(code, True)
+    Celltone(code)
