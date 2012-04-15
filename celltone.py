@@ -1,7 +1,7 @@
 from model import *
 from parser import Parser, ParseError
 from midi import Player
-from gui import Gui
+from gui import Gui, gui_lock
 import sys
 import signal
 import time
@@ -25,6 +25,10 @@ class Celltone:
 
         self.leftover_midi_notes = None
         self.is_playing = False
+
+        if has_gui:
+            gui_lock.acquire()
+            
         self.set_code(code)
 
         if not self.gui:
