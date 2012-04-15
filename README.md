@@ -139,7 +139,7 @@ available properties are `<tempo>` and `<subdiv>`. Example:
 
 <code>
 &lt;tempo&gt; = 124
-<subdiv> = 16
+&lt;subdiv&gt; = 16
 </code>
 
 
