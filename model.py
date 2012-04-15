@@ -1,4 +1,4 @@
-from copy import copy
+from copy import copy, deepcopy
 import threading
 
 PAUSE = '_'
@@ -9,10 +9,16 @@ class Logger:
         self.items = []
 
     def add(self, rule, beat_before, beat_after):
-        self.items.append((rule, beat_before, beat_after))
+        self.items.append(LogItem(rule, beat_before, beat_after))
 
     def clear(self):
         self.items = []
+
+class LogItem:
+    def __init__(self, rule, beat_before, beat_after):
+        self.rule = rule
+        self.beat_before = beat_before
+        self.beat_after = beat_after
 
 logger = Logger()
 
@@ -82,6 +88,11 @@ class Part:
         return MidiNote(note, self.properties['channel'], self.properties['velocity'])
 
     def create_notes_copy(self):
+        '''
+        Rules should depend on the state of the part before
+        the iteration, hence we copy the notes and use them
+        in the clauses and modifiers.
+        '''
         self.notes_copy = copy(self.notes)
 
     def __str__(self):
@@ -125,13 +136,13 @@ class Rule:
             if not modifier.can_alter(beat):
                 return
 
-        beat_before = copy(beat)
+        beat_before = deepcopy(beat)
 
         for modifier in self.rhs:
             name = modifier.indexed.part.name
             modifier.alter(beat)
 
-        logger.add(self, beat_before, copy(beat))
+        logger.add(self, beat_before, deepcopy(beat))
 
     def __str__(self):
         lhs = ', '.join(map(str, self.lhs))
@@ -239,7 +250,7 @@ class Engine:
         self.parts = parts
         self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts.values(), 0)
         self.rules = rules
-        self.original_parts = copy(parts)
+        self.original_parts = deepcopy(parts)
 
     def get_midi_notes(self):
         midi_notes = []
