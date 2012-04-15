@@ -135,7 +135,7 @@ a.octava = 5
 ### Global properties ###
 
 Global properties affect the piece as a whole. Currently the
-available properties are `<tempo>` and `<subdiv>`. Example:
+available properties are `<tempo>`, `<iterlength>` and `<subdiv>`. Example:
 
 <code>
 &lt;tempo&gt; = 124
