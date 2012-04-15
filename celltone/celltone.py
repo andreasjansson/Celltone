@@ -46,11 +46,8 @@ class Celltone:
                 parts, rules, config = self.parser.parse(code)
             except ParseError as e:
                 die(str(e))
-
         else:
-            parts = []
-            rules = []
-            config = Config()
+            die('Error: Empty input')
             
         self.engine = Engine(parts, rules)
         iterlength = config.get('iterlength')
@@ -90,6 +87,8 @@ class Celltone:
                 time.sleep(0.5)
 
     def play(self):
+        if not len(self.engine.parts):
+            die('Error: No parts to play')
         self.is_playing = True
 
     def pause(self):
@@ -130,7 +129,7 @@ def main():
         code = ''.join(sys.stdin.readlines())
     else:
         if not os.path.exists(args.filename):
-            die('No such file: ' + args.filename)
+            die('Error: No such file \'%s\'' % args.filename)
         with open(args.filename) as f:
             code = ''.join(f.readlines())
 

@@ -107,7 +107,7 @@ def p_empty(p):
 def p_partassign(p):
     'partassign : ID ASSIGN notelist'
     if p[1] in parts:
-        raise ParseError('Cannot redefine part: ' + p[1])
+        raise SemanticError(p.lineno(1), "Cannot redefine part '%s'" % p[1])
     parts[p[1]] = Part(p[1], p[3])
 
 def p_notelist(p):
@@ -122,13 +122,15 @@ def p_notes_single(p):
     'notes : note'
     p[0] = [p[1]]
 
-def p_notes_empty(p):
+def p_notes_empty_error(p):
     'notes : empty'
-    p[0] = []
+    raise SemanticError(p.lineno(1), 'Empty note lists are not permitted')
 
 def p_note_number(p):
     'note : NUMBER'
     note = p[1]
+    if not is_midi_number(note):
+        raise SemanticError(p.lineno(1), '%d is not a valid note number' % note)
     p[0] = note
 
 def p_note_pause(p):
@@ -147,7 +149,7 @@ def p_propassign_number(p):
     try:
         part.set_property(prop, value)
     except Exception as e:
-        raise ParseError(str(e))
+        raise SemanticError(p.lineno(2), str(e))
 
 def p_rule(p):
     'rule : lhs BECOMES rhs'
@@ -175,6 +177,9 @@ def p_clause(p):
 
 def p_indexed(p):
     'indexed : ID LSQUARE NUMBER RSQUARE'
+    if p[1] not in parts:
+        raise SemanticError(p.lineno(1), 'Undefined part \'%s\'' % p[1])
+
     p[0] = Indexed(parts[p[1]], p[3])
 
 def p_comparator(p):
@@ -220,11 +225,13 @@ def p_confassign_number(p):
     try:
         config.set(p[1], p[3])
     except Exception as e:
-        raise ParseError(str(e))
+        raise SemanticError(p.lineno(1), str(e))
 
 def p_error(p):
-    raise ParseError("Syntax error on line %d, lexpos %d, token %s" %
-                     (p.lineno, p.lexpos, p.type))
+    if p:
+        raise SyntaxError(p.lineno)
+    else:
+        raise ParseError('Syntax error near end of file')
 
 class Parser:
 
@@ -239,3 +246,21 @@ class Parser:
 
 class ParseError(Exception):
     pass
+
+class SyntaxError(ParseError):
+    def __init__(self, lineno, info = None):
+        message = "Syntax error on line %d" % lineno
+        if info:
+            message += ': ' + info
+        ParseError.__init__(self, message)
+
+class SemanticError(ParseError):
+    def __init__(self, lineno, info = None):
+        message = "Error on line %d" % lineno
+        if info:
+            message += ': ' + info
+        ParseError.__init__(self, message)
+
+def is_midi_number(n):
+    return n >= 0 and n <= 127
+

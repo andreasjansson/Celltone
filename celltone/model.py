@@ -32,14 +32,24 @@ class Config:
             'iterlength': None
             }
 
+        # pretty arbitrary upper limits
+        self.boundaries = {
+            'tempo': (1, 10000),
+            'subdiv': (1, 10000),
+            'iterlength' : (1, 10000),
+            }
+
     def set(self, name, value):
         if name not in self.options:
-            raise Exception('Unknown confuration option: ' + name)
+            raise Exception('Unknown global option \'%s\'' % name)
+        minimum, maximum = self.boundaries[name]
+        if value < minimum:
+            raise Exception('%s must be >= %d' % (name, minimum))
+        if value > maximum:
+            raise Exception('%s must be <= %d' % (name, maximum))
         self.options[name] = value
 
     def get(self, name):
-        if name not in self.options:
-            raise Exception('Unknown confuration option: ' + name)
         return self.options[name]
 
 class Part:
@@ -61,7 +71,7 @@ class Part:
 
     def set_property(self, name, value):
         if name not in self.properties:
-            raise Exception('Property undefined: ' + name)
+            raise Exception('Undefined property \'%s\'' % name)
         self.properties[name] = value
 
     def get_note_at(self, index):
