@@ -138,7 +138,7 @@ Global properties affect the piece as a whole. Currently the
 available properties are `<tempo>` and `<subdiv>`. Example:
 
 <code>
-<tempo> = 124
+&lt;tempo&gt; = 124
 <subdiv> = 16
 </code>
 
