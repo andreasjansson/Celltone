@@ -102,12 +102,7 @@ class Celltone:
         self.engine.reset_parts()
 
 
-def die(string, return_code = 1):
-    sys.stderr.write(str(e))
-    sys.exit(return_code)
-
-
-if __name__ == '__main__':
+def main():
     import argparse
     parser = argparse.ArgumentParser(description = 'Process Celltone code')
     group = parser.add_mutually_exclusive_group()
@@ -134,4 +129,12 @@ if __name__ == '__main__':
             code = ''.join(f.readlines())
 
     Celltone(code, verbosity)
+
+def die(string, return_code = 1):
+    sys.stderr.write(str(e))
+    sys.exit(return_code)
+
+
+if __name__ == '__main__':
+    main()
 
