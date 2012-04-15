@@ -32,7 +32,7 @@ additionally output the rules that were used in this generation, and
 of the rule.
 
 
-MIDI Output
+MIDI output
 -----------
 
 When you run Celltone it outputs MIDI. Use a tool like qjackctl or
