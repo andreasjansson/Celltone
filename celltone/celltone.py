@@ -137,7 +137,7 @@ def main():
     Celltone(code, verbosity)
 
 def die(string, return_code = 1):
-    sys.stderr.write(str(e))
+    sys.stderr.write(string + '\n')
     sys.exit(return_code)
 
 
