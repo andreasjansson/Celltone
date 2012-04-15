@@ -137,10 +137,10 @@ a.octava = 5
 Global properties affect the piece as a whole. Currently the
 available properties are `<tempo>` and `<subdiv>`. Example:
 
-<pre>
+<pre><code>
 <tempo> = 124
 <subdiv> = 16
-</pre>
+</code></pre>
 
 
 ### Comments ###
