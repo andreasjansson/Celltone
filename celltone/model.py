@@ -65,6 +65,11 @@ class Part:
             'velocity': 100,
             'octava' : 4,
             }
+        self.prop_bounds = {
+            'channel': (0, 127),
+            'velocity': (0, 127),
+            'octava': (0, 10),
+            }
         self.pointer = 0
         self.altered = None
         self.reset_altered()
@@ -72,6 +77,11 @@ class Part:
     def set_property(self, name, value):
         if name not in self.properties:
             raise Exception('Undefined property \'%s\'' % name)
+        minimum, maximum = self.prop_bounds[name]
+        if value < minimum:
+            raise Exception('%s must be >= %d' % (name, minimum))
+        if value > maximum:
+            raise Exception('%s must be <= %d' % (name, maximum))
         self.properties[name] = value
 
     def get_note_at(self, index):

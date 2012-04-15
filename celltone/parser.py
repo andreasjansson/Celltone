@@ -10,7 +10,6 @@ import ply.lex as lex
 import ply.yacc as yacc
 import sys
 from model import *
-from midi import *
 
 tokens = (
     'ID', 'ASSIGN', 'LSQUARE', 'RSQUARE',
@@ -82,7 +81,7 @@ def t_newline(t):
     t.lexer.lineno += 1
 
 def t_error(t):
-    raise ParseError("Illegal character '%s'" % t.value[0])
+    raise SyntaxError(t.lineno, "Illegal character '%s'" % t.value[0])
 
 
 
@@ -128,10 +127,7 @@ def p_notes_empty_error(p):
 
 def p_note_number(p):
     'note : NUMBER'
-    note = p[1]
-    if not is_midi_number(note):
-        raise SemanticError(p.lineno(1), '%d is not a valid note number' % note)
-    p[0] = note
+    p[0] = p[1]
 
 def p_note_pause(p):
     'note : PAUSE'

@@ -2,12 +2,16 @@ from model import MidiNote
 import time
 import pypm
 import threading
+import celltone
 
 class Player(threading.Thread):
 
-    pypm.Initialize()
-    dev = pypm.GetDefaultOutputDeviceID()
-    midi_out = pypm.Output(dev)
+    try:
+        pypm.Initialize()
+        dev = pypm.GetDefaultOutputDeviceID()
+        midi_out = pypm.Output(dev)
+    except Exception as e:
+        celltone.die('Failed to start MIDI: ' + str(e))
 
     def __init__(self, bpm, subdivision):
         self.bpm = float(bpm)
@@ -25,12 +29,16 @@ class Player(threading.Thread):
         return leftover_midi_notes
 
     def noteon(self, midi_note):
-        Player.midi_out.WriteShort(0x90 + midi_note.channel,
-                                 midi_note.note, midi_note.velocity)
+        if midi_note.note < 0 or midi_note.note > 127:
+            celltone.warning("Bad note number %d" % midi_note.note)
+        else:
+            Player.midi_out.WriteShort(0x90 + midi_note.channel,
+                                       midi_note.note, midi_note.velocity)
 
     def noteoff(self, midi_note):
-        Player.midi_out.WriteShort(0x80 + midi_note.channel,
-                                 midi_note.note, 0)
+        if midi_note.note >= 0 or midi_note.note <= 127:
+            Player.midi_out.WriteShort(0x80 + midi_note.channel,
+                                       midi_note.note, 0)
 
 
 class PlayerThread(threading.Thread):
@@ -41,11 +49,8 @@ class PlayerThread(threading.Thread):
         threading.Thread.__init__(self)
 
     def run(self):
-        i = 0
         while len(self.midi_notes) > 0:
             notes = self.midi_notes[0]
-            #print(i, len(self.midi_notes))
-            i += 1
             self.midi_notes = self.midi_notes[1:]
             for note in notes:
                 self.player.noteon(note)
@@ -55,3 +60,4 @@ class PlayerThread(threading.Thread):
 
             for note in notes:
                 self.player.noteoff(note)
+

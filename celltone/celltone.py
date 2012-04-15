@@ -1,11 +1,11 @@
 from model import Engine, logger
 from parser import Parser, ParseError
-from midi import Player
 import sys
 import signal
 import time
 import os
 import os.path
+import midi
 
 celltone_home = os.path.expanduser('~/.celltone')
 
@@ -26,6 +26,9 @@ class Celltone:
 
         self.leftover_midi_notes = None
         self.is_playing = False
+
+        self.player = None
+        self.engine = None
         self.set_code(code)
 
         self.play()
@@ -53,7 +56,8 @@ class Celltone:
         iterlength = config.get('iterlength')
         if iterlength is not None:
             self.engine.iteration_length = iterlength
-        self.player = Player(config.get('tempo'), config.get('subdiv'))
+
+        self.player = midi.Player(config.get('tempo'), config.get('subdiv'))
 
     def loop(self, initial_midi_notes = None):
         '''
@@ -125,13 +129,16 @@ def main():
     if args.vvv:
         verbosity = 3
 
-    if not args.filename or args.filename == '-':
-        code = ''.join(sys.stdin.readlines())
-    else:
-        if not os.path.exists(args.filename):
-            die('Error: No such file \'%s\'' % args.filename)
-        with open(args.filename) as f:
-            code = ''.join(f.readlines())
+    try:
+        if not args.filename or args.filename == '-':
+            code = ''.join(sys.stdin.readlines())
+        else:
+            if not os.path.exists(args.filename):
+                die('Error: No such file \'%s\'' % args.filename)
+            with open(args.filename) as f:
+                code = ''.join(f.readlines())
+    except KeyboardInterrupt:
+        sys.exit(0)
 
     Celltone(code, verbosity)
 
@@ -139,6 +146,8 @@ def die(string, return_code = 1):
     sys.stderr.write(string + '\n')
     sys.exit(return_code)
 
+def warning(string):
+    sys.stderr.write('***** WARNING: ' + string + ' *****\n')
 
 if __name__ == '__main__':
     main()
