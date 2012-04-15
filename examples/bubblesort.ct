@@ -45,5 +45,5 @@ e.channel = 3
 # we assume that both parts have been sorted, and we start the bass part.
 {x[0] == 0, b[0] == 27, a[-1] == 26} => {e[0] = 0, e[2] = 12}
 
-<tempo> = 1240
+<tempo> = 124
 <subdiv> = 16

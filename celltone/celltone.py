@@ -4,11 +4,17 @@ from midi import Player
 import sys
 import signal
 import time
+import os
 import os.path
+
+celltone_home = os.path.expanduser('~/.celltone')
 
 class Celltone:
 
     def __init__(self, code, verbosity = 0):
+        if not os.path.exists(celltone_home):
+            os.mkdir(celltone_home)
+
         self.parser = Parser()
         if verbosity > 0:
             from verbose import Verbose

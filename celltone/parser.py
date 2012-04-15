@@ -84,7 +84,6 @@ def t_newline(t):
 def t_error(t):
     raise ParseError("Illegal character '%s'" % t.value[0])
 
-lex.lex()
 
 
 parts = {}
@@ -227,14 +226,14 @@ def p_error(p):
     raise ParseError("Syntax error on line %d, lexpos %d, token %s" %
                      (p.lineno, p.lexpos, p.type))
 
-yacc.yacc()
-
 class Parser:
+
+    def __init__(self):
+        lex.lex()
+        from celltone import celltone_home
+        yacc.yacc(debug = 0, tabmodule = 'ply_parsetab', outputdir = celltone_home)
+
     def parse(self, code):
-        global parts, rules, config
-        parts = {}
-        rules = []
-        config = Config()
         yacc.parse(code)
         return (parts, rules, config)
 
