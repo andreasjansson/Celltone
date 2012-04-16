@@ -13,7 +13,11 @@ Download the source and run
 python setup.py install
 </pre>
 
-That should hopefully download all the dependencies.
+That should hopefully download all Python dependencies. In order for this to work
+you need Python setuptools installed.
+
+Celltone depends on PortMidi for MIDI output. On Linux, it is available in the default repos,
+on OSX, there is a Homebrew recipe, and for Windows, see http://sourceforge.net/apps/trac/portmedia/wiki/Installing%20portmidi%20on%20Windows.
 
 
 Running Celltone
