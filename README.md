@@ -13,8 +13,9 @@ First, make sure you have the python, python-setuptools and portmidi packages.
 On Linux you also need the ALSA development packages. Then, download pyPortMidi. I use
 aalex's fork on BitBucket: https://bitbucket.org/aalex/pyportmidi/downloads/python-portmidi-0.0.7.tar.gz
 In the python-portmidi directory, run `sudo python setup.py install`. If this fails, it should hint
-at what went wrong. Have a look at the installation instructions on https://bitbucket.org/aalex/pyportmidi/wiki/Home
-for help getting pyPortMidi working.
+at what went wrong. Maybe you need to run `sudo easy_install pyrex`? 
+There's good documentation at https://bitbucket.org/aalex/pyportmidi/wiki/Home
+on how to get pyPortMidi working.
 
 Once that's done, download the Celltone sources, cd into the Celltone directory, and run `sudo python setup.py install`.
 
