@@ -7,7 +7,7 @@ Celltone
 Installation
 ------------
 
-Installation pretty straight forward -- at least once you have pyPortMidi installed.
+Installation is pretty straight forward -- at least once you have pyPortMidi installed.
 
 First, make sure you have the python, python-setuptools and portmidi packages.
 On Linux you also need the ALSA development packages. Then, download pyPortMidi. I use
