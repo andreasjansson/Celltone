@@ -38,8 +38,8 @@ of the rule.
 MIDI output
 -----------
 
-When you run Celltone it outputs MIDI. Use a tool like qjackctl or
-pmdefaults to route the MIDI output to some MIDI input device.
+When you run Celltone it outputs MIDI. Use a tool like pmdefaults or
+qjackctl to route the MIDI output to some MIDI input device.
 
 
 The language
