@@ -7,14 +7,17 @@ Celltone
 Installation
 ------------
 
-Download the source and run
+Installation is pretty straight forward -- at least once you have pyPortMidi installed.
 
-<pre>
-python setup.py install
-</pre>
+First, make sure you have the python, python-setuptools and portmidi packages.
+On Linux you also need the ALSA development packages. Then, download pyPortMidi. I use
+aalex's fork on BitBucket: https://bitbucket.org/aalex/pyportmidi/downloads/python-portmidi-0.0.7.tar.gz
+In the python-portmidi directory, run `sudo python setup.py install`. If this fails, it should hint
+at what went wrong. Maybe you need to run `sudo easy_install pyrex`? 
+There's good documentation at https://bitbucket.org/aalex/pyportmidi/wiki/Home
+on how to get pyPortMidi working.
 
-That should hopefully download all the dependencies.
-
+When that is done, download the Celltone sources, cd into the Celltone directory, and run `sudo python setup.py install`.
 
 Running Celltone
 ----------------
@@ -35,8 +38,8 @@ of the rule.
 MIDI output
 -----------
 
-When you run Celltone it outputs MIDI. Use a tool like qjackctl or
-pmdefaults to route the MIDI output to some MIDI input device.
+When you run Celltone it outputs MIDI. Use a tool like pmdefaults or
+qjackctl to route the MIDI output to some MIDI input device.
 
 
 The language
