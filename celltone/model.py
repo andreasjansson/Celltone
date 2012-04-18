@@ -226,6 +226,12 @@ class Modifier:
             return str(self.indexed)
         return '%s = %s' % (str(self.indexed), str(self.subject))
 
+class PartIndexed:
+
+    def __init__(self, part_index, index):
+        self.part_index = part_index
+        self.index = index
+
 class Comparator:
     def compare(self, note1, note2):
         raise NotImplementedError()

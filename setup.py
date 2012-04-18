@@ -14,7 +14,8 @@ setup(
             'celltone = celltone.celltone:main'
             ]
         },
-    install_requires = ['ply>=3.0', 'pyrex', 'pyPortMidi>=0.0.3', 'argparse>=1.0'],
+    #install_requires = ['ply>=3.0', 'pyrex', 'pyPortMidi>=0.0.3', 'argparse>=1.0'],
+    install_requires = ['ply>=3.0', 'argparse>=1.0'],
 
     author = 'Andreas Jansson',
     author_email = 'andreas@jansson.me.uk',

@@ -26,7 +26,7 @@ tokens = (
     'LCURLY', 'RCURLY', 'EQ', 'NEQ',
     'LT', 'LTE', 'GT', 'GTE',
     'PAUSE', 'COMMA', 'BECOMES', 'DOT',
-    'NUMBER', 'OPTION',
+    'NUMBER', 'OPTION', 'PARTINDEX',
     )
 
 t_ID        = r'[a-zA-Z][a-zA-Z0-9_]*'
@@ -50,6 +50,11 @@ def t_NUMBER(t):
 def t_OPTION(t):
     r'<[a-zA-Z][a-zA-Z0-9_]*>'
     t.value = t.value[1:-1]
+    return t
+
+def t_PARTINDEX(t):
+    r'<[-+]?\d+>'
+    t.value = int(t.value[1:-1])
     return t
 
 def t_EQ(t):
@@ -178,15 +183,18 @@ def p_clauses_empty(p):
     p[0] = []
 
 def p_clause(p):
-    'clause : indexed comparator subject'
+    'clause : moditem comparator subject'
     p[0] = Clause(p[1], p[2], p[3])
 
 def p_indexed(p):
     'indexed : ID LSQUARE NUMBER RSQUARE'
     if p[1] not in parts:
         raise SemanticError(p.lineno(1), 'Undefined part \'%s\'' % p[1])
-
     p[0] = Indexed(parts[p[1]], p[3])
+
+def p_partindexed(p):
+    'partindexed : PARTINDEX LSQUARE NUMBER RSQUARE'
+    p[0] = PartIndexed(p[1], p[3])
 
 def p_comparator(p):
     '''comparator : EQ
@@ -199,7 +207,8 @@ def p_comparator(p):
 
 def p_subject(p):
     '''subject : note
-               | indexed'''
+               | indexed
+               | partindexed'''
     p[0] = p[1]
 
 def p_rhs(p):
@@ -219,19 +228,43 @@ def p_modifiers_empty(p):
     p[0] = []
 
 def p_modifier_assign(p):
-    'modifier : indexed ASSIGN subject'
+    'modifier : moditem ASSIGN subject'
     p[0] = Modifier(p[1], p[3])
 
 def p_modifier_touch(p):
-    'modifier : indexed'
+    'modifier : moditem'
     p[0] = Modifier(p[1], p[1])
 
-def p_confassign_number(p):
-    'confassign : OPTION ASSIGN NUMBER'
+# TODO: better name
+def p_moditem(p):
+    '''moditem : indexed
+               | partindexed'''
+    p[0] = p[1]
+
+def p_confassign(p):
+    '''confassign : OPTION ASSIGN NUMBER
+                  | OPTION ASSIGN partlist'''
     try:
         config.set(p[1], p[3])
     except Exception as e:
         raise SemanticError(p.lineno(1), str(e))
+
+def p_partlist(p):
+    'partlist : LSQUARE parts RSQUARE'
+    p[0] = p[2]
+
+def p_parts_list(p):
+    'parts : ID COMMA parts'
+    p[0] = [p[1]] + p[3]
+
+def p_parts_single(p):
+    'parts : ID'
+    p[0] = parts[p[1]]
+
+def p_parts_empty_error(p):
+    'parts : empty'
+    raise SemanticError(p.lineno(1), 'Empty part lists are not permitted')
+
 
 def p_error(p):
     if p:
