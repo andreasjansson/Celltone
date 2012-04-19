@@ -26,7 +26,7 @@ tokens = (
     'LCURLY', 'RCURLY', 'EQ', 'NEQ',
     'LT', 'LTE', 'GT', 'GTE',
     'PAUSE', 'COMMA', 'BECOMES', 'DOT',
-    'NUMBER', 'OPTION', 'PARTINDEX',
+    'NUMBER', 'OPTION', 'ANYINDEX',
     )
 
 t_ID        = r'[a-zA-Z][a-zA-Z0-9_]*'
@@ -52,7 +52,7 @@ def t_OPTION(t):
     t.value = t.value[1:-1]
     return t
 
-def t_PARTINDEX(t):
+def t_ANYINDEX(t):
     r'<[-+]?\d+>'
     t.value = int(t.value[1:-1])
     return t
@@ -102,6 +102,7 @@ def t_error(t):
 
 parts = {}
 rules = []
+part_order = []
 config = Config()
 
 def p_program(p):
@@ -122,7 +123,9 @@ def p_partassign(p):
     'partassign : ID ASSIGN notelist'
     if p[1] in parts:
         raise SemanticError(p.lineno(1), "Cannot redefine part '%s'" % p[1])
-    parts[p[1]] = Part(p[1], p[3])
+    part = Part(p[1], p[3])
+    parts[p[1]] = part
+    part_order.append(part)
 
 def p_notelist(p):
     'notelist : LSQUARE notes RSQUARE'
@@ -183,7 +186,7 @@ def p_clauses_empty(p):
     p[0] = []
 
 def p_clause(p):
-    'clause : moditem comparator subject'
+    'clause : someindexed comparator subject'
     p[0] = Clause(p[1], p[2], p[3])
 
 def p_indexed(p):
@@ -192,9 +195,9 @@ def p_indexed(p):
         raise SemanticError(p.lineno(1), 'Undefined part \'%s\'' % p[1])
     p[0] = Indexed(parts[p[1]], p[3])
 
-def p_partindexed(p):
-    'partindexed : PARTINDEX LSQUARE NUMBER RSQUARE'
-    p[0] = PartIndexed(p[1], p[3])
+def p_anyindexed(p):
+    'anyindexed : ANYINDEX LSQUARE NUMBER RSQUARE'
+    p[0] = AnyIndexed(p[1], p[3])
 
 def p_comparator(p):
     '''comparator : EQ
@@ -208,7 +211,7 @@ def p_comparator(p):
 def p_subject(p):
     '''subject : note
                | indexed
-               | partindexed'''
+               | anyindexed'''
     p[0] = p[1]
 
 def p_rhs(p):
@@ -228,17 +231,17 @@ def p_modifiers_empty(p):
     p[0] = []
 
 def p_modifier_assign(p):
-    'modifier : moditem ASSIGN subject'
+    'modifier : someindexed ASSIGN subject'
     p[0] = Modifier(p[1], p[3])
 
 def p_modifier_touch(p):
-    'modifier : moditem'
+    'modifier : someindexed'
     p[0] = Modifier(p[1], p[1])
 
 # TODO: better name
-def p_moditem(p):
-    '''moditem : indexed
-               | partindexed'''
+def p_someindexed(p):
+    '''someindexed : indexed
+               | anyindexed'''
     p[0] = p[1]
 
 def p_confassign(p):
@@ -281,7 +284,7 @@ class Parser:
 
     def parse(self, code):
         yacc.parse(code)
-        return (parts, rules, config)
+        return (parts, rules, part_order, config)
 
 class ParseError(Exception):
     pass

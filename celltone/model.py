@@ -16,6 +16,8 @@
 # 
 
 
+# TODO: test AnyIndexed
+
 from copy import copy, deepcopy
 import threading
 
@@ -26,15 +28,16 @@ class Logger:
     def __init__(self):
         self.items = []
 
-    def add(self, rule, beat_before, beat_after):
-        self.items.append(LogItem(rule, beat_before, beat_after))
+    def add(self, rule, pivot_part, beat_before, beat_after):
+        self.items.append(LogItem(rule, pivot_part, beat_before, beat_after))
 
     def clear(self):
         self.items = []
 
 class LogItem:
-    def __init__(self, rule, beat_before, beat_after):
+    def __init__(self, rule, pivot_part, beat_before, beat_after):
         self.rule = rule
+        self.pivot_part = pivot_part
         self.beat_before = beat_before
         self.beat_after = beat_after
 
@@ -47,24 +50,27 @@ class Config:
         self.options = {
             'tempo': 120,
             'subdiv': 16,
-            'iterlength': None
+            'iterlength': None,
+            'part_order': None,
             }
 
         # pretty arbitrary upper limits
         self.boundaries = {
             'tempo': (1, 10000),
             'subdiv': (1, 10000),
-            'iterlength' : (1, 10000),
+            'iterlength': (1, 10000),
+            'part_order': None,
             }
 
     def set(self, name, value):
         if name not in self.options:
             raise Exception('Unknown global option \'%s\'' % name)
-        minimum, maximum = self.boundaries[name]
-        if value < minimum:
-            raise Exception('%s must be >= %d' % (name, minimum))
-        if value > maximum:
-            raise Exception('%s must be <= %d' % (name, maximum))
+        if self.boundaries[name]:
+            minimum, maximum = self.boundaries[name]
+            if value < minimum:
+                raise Exception('%s must be >= %d' % (name, minimum))
+            if value > maximum:
+                raise Exception('%s must be <= %d' % (name, maximum))
         self.options[name] = value
 
     def get(self, name):
@@ -91,6 +97,7 @@ class Part:
         self.pointer = 0
         self.altered = None
         self.reset_altered()
+        self.next_part = self.prev_part = None
 
     def set_property(self, name, value):
         if name not in self.properties:
@@ -133,32 +140,55 @@ class Part:
         '''
         self.notes_copy = copy(self.notes)
 
+    def other_part_at(self, index):
+        '''
+        Pointer implementation.
+        '''
+        if index == 0:
+            return self
+        if index > 0:
+            return self.next_part.other_part_at(index - 1)
+        if index < 0:
+            return self.prev_part.other_part_at(index + 1)
+
     def __str__(self):
         return '%s = [%s]' % (self.name, ', '.join(map(str, self.notes)))
 
 class Clause:
 
-    def __init__(self, indexed, comparator, subject):
-        self.indexed = indexed
+    def __init__(self, some_indexed, comparator, subject):
+        self.some_indexed = some_indexed
         self.comparator = comparator
         self.subject = subject
 
-    def matches(self, beat):
-        part = self.indexed.part
-        current_index = beat[part.name].index
-        note = part.get_note_copy_at(current_index + self.indexed.index)
+    # TODO: cache matching
+    def matches(self, beat, pivot_part):
 
-        if isinstance(self.subject, Indexed):
-            current_subject_index = beat[self.subject.part.name].index
-            subject_note = self.subject.part.get_note_copy_at(current_subject_index +
-                                                     self.subject.index)
+        if isinstance(self.some_indexed, Indexed):
+            indexed = self.some_indexed
+        else: # AnyIndexed
+            indexed = self.some_indexed.bind(pivot_part)
+
+        part = indexed.part
+        current_index = beat[part.name].index
+        note = part.get_note_copy_at(current_index + indexed.index)
+
+        if isinstance(self.subject, Indexed) or isinstance(self.subject, AnyIndexed):
+            if isinstance(self.subject, Indexed):
+                subject_indexed = self.subject
+            else:
+                subject_indexed = self.subject.bind(pivot_part)
+            current_subject_index = beat[subject_indexed.part.name].index
+            subject_note = subject_indexed.part.get_note_copy_at(current_subject_index +
+                                                                 subject_indexed.index)
         else:
             subject_note = self.subject
         
         return self.comparator.compare(note, subject_note)
 
     def __str__(self):
-        return '%s %s %s' % (str(self.indexed), str(self.comparator), str(self.subject))
+        return '%s %s %s' % \
+            (str(self.some_indexed), str(self.comparator), str(self.subject))
 
 class Rule:
 
@@ -166,21 +196,21 @@ class Rule:
         self.lhs = lhs
         self.rhs = rhs
 
-    def apply(self, beat):
+    def apply(self, beat, pivot_part):
         for clause in self.lhs:
-            if not clause.matches(beat):
+            if not clause.matches(beat, pivot_part):
                 return
+        # TODO: see if faster to run can_alter before matching
         for modifier in self.rhs:
-            if not modifier.can_alter(beat):
+            if not modifier.can_alter(beat, pivot_part):
                 return
 
         beat_before = deepcopy(beat)
 
         for modifier in self.rhs:
-            name = modifier.indexed.part.name
-            modifier.alter(beat)
+            modifier.alter(beat, pivot_part)
 
-        logger.add(self, beat_before, deepcopy(beat))
+        logger.add(self, pivot_part, beat_before, deepcopy(beat))
 
     def __str__(self):
         lhs = ', '.join(map(str, self.lhs))
@@ -198,39 +228,59 @@ class Indexed:
 
 class Modifier:
 
-    def __init__(self, indexed, subject):
-        self.indexed = indexed
+    def __init__(self, some_indexed, subject):
+        self.some_indexed = some_indexed
         self.subject = subject
 
-    def can_alter(self, beat):
-        part = self.indexed.part
+    # TODO: generalise can_alter, alter and Clause.matches
+    def can_alter(self, beat, pivot_part):
+        if isinstance(self.some_indexed, Indexed):
+            indexed = self.some_indexed
+        else: # AnyIndexed
+            indexed = self.some_indexed.bind(pivot_part)
+        part = indexed.part
         current_index = beat[part.name].index
-        return not part.get_altered_at(current_index + self.indexed.index)
+        return not part.get_altered_at(current_index + indexed.index)
 
-    def alter(self, beat):
-        part = self.indexed.part
+    def alter(self, beat, pivot_part):
+        if isinstance(self.some_indexed, Indexed):
+            indexed = self.some_indexed
+        else: # AnyIndexed
+            indexed = self.some_indexed.bind(pivot_part)
+        part = indexed.part
         current_index = beat[part.name].index
-        part = self.indexed.part
+        part = indexed.part
 
-        if isinstance(self.subject, Indexed):
-            current_subject_index = beat[self.subject.part.name].index
-            subject_note = self.subject.part.get_note_copy_at(current_subject_index +
-                                                              self.subject.index)
+        if isinstance(self.subject, Indexed) or isinstance(self.subject, AnyIndexed):
+            if isinstance(self.subject, Indexed):
+                subject_indexed = self.subject
+            else:
+                subject_indexed = self.subject.bind(pivot_part)
+            current_subject_index = beat[subject_indexed.part.name].index
+            subject_note = subject_indexed.part.get_note_copy_at(current_subject_index +
+                                                                 subject_indexed.index)
         else:
             subject_note = self.subject
 
-        part.set_note_at(current_index + self.indexed.index, subject_note)
+        part.set_note_at(current_index + indexed.index, subject_note)
 
     def __str__(self):
-        if self.indexed == self.subject:
-            return str(self.indexed)
-        return '%s = %s' % (str(self.indexed), str(self.subject))
+        if self.some_indexed == self.subject:
+            return str(self.some_indexed)
+        return '%s = %s' % (str(self.some_indexed), str(self.subject))
 
-class PartIndexed:
+class AnyIndexed:
 
     def __init__(self, part_index, index):
         self.part_index = part_index
         self.index = index
+
+    def bind(self, bind_part):
+        part = bind_part.other_part_at(self.part_index)
+        return Indexed(part, self.index)
+
+    def __str__(self):
+        return '<%d>[%d]' % (self.part_index, self.index)
 
 class Comparator:
     def compare(self, note1, note2):
@@ -290,11 +340,18 @@ class MidiNote:
 
 class Engine:
 
-    def __init__(self, parts, rules):
+    def __init__(self, parts, rules, part_order):
         self.parts = parts
         self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts.values(), 0)
         self.rules = rules
+        self.link_parts(part_order)
         self.original_parts = deepcopy(parts)
+        self.part_order = part_order
+    
+    def link_parts(self, part_order):
+        for i, part in enumerate(part_order):
+            part.next_part = part_order[(i + 1) % len(part_order)]
+            part.prev_part = part_order[(i - 1) % len(part_order)]
 
     def get_midi_notes(self):
         midi_notes = []
@@ -310,9 +367,11 @@ class Engine:
         self.reset_altered()
         self.notes_read_copy()
 
+        # TODO: optimise
         for rule in self.rules:
             for beat in self.beats():
-                rule.apply(beat)
+                for part in self.part_order:
+                    rule.apply(beat, part)
 
         self.update_pointers()
 

@@ -64,13 +64,16 @@ class Celltone:
     def set_code(self, code):
         if code:
             try:
-                parts, rules, config = self.parser.parse(code)
+                parts, rules, part_order, config = self.parser.parse(code)
             except ParseError as e:
                 die(str(e))
         else:
             die('Error: Empty input')
-            
-        self.engine = Engine(parts, rules)
+
+        if config.get('part_order'):
+            part_order = config.get('part_order')
+
+        self.engine = Engine(parts, rules, part_order)
         iterlength = config.get('iterlength')
         if iterlength is not None:
             self.engine.iteration_length = iterlength
