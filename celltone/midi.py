@@ -22,7 +22,7 @@ import pypm
 import threading
 import celltone
 
-class Player(threading.Thread):
+class Player(object):
 
     try:
         pypm.Initialize()

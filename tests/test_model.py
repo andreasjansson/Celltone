@@ -1,50 +1,53 @@
-from model import *
+import sys
+import sys, os 
+sys.path.append('..')
+from celltone.model import *
 import unittest
 
 class TestModel(unittest.TestCase):
 
     def test_comparators(self):
         _ = PAUSE
-        self.assertTrue(Comparator.lt(_, 0))
-        self.assertTrue(Comparator.lt(_, -100))
-        self.assertTrue(Comparator.lte(_, 1))
-        self.assertTrue(Comparator.gt(0, _))
-        self.assertTrue(Comparator.gt(-100, _))
-        self.assertTrue(Comparator.gte(1, _))
-        self.assertFalse(Comparator.lt(0, _))
+        self.assertTrue(CompLT().compare(_, 0))
+        self.assertTrue(CompLT().compare(_, -100))
+        self.assertTrue(CompLTE().compare(_, 1))
+        self.assertTrue(CompGT().compare(0, _))
+        self.assertTrue(CompGT().compare(-100, _))
+        self.assertTrue(CompGTE().compare(1, _))
+        self.assertFalse(CompLT().compare(0, _))
 
     def test_clause_number(self):
         a = Part('a', [1,2,3,4])
-        clause = Clause(Indexed(a, -1), Comparator.eq, 1)
+        clause = Condition(Indexed(a, -1), CompEQ(), 1)
 
-        self.assertTrue(clause.matches({'a': Indexed(a, 1)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 0)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 2)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 3)}))
+        self.assertTrue(clause.matches({'a': Indexed(a, 1)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 0)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 2)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 3)}, None))
 
-        clause = Clause(Indexed(a, -1), Comparator.eq, 4)
-        self.assertTrue(clause.matches({'a': Indexed(a, 0)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1)}))
+        clause = Condition(Indexed(a, -1), CompEQ(), 4)
+        self.assertTrue(clause.matches({'a': Indexed(a, 0)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 1)}, None))
 
-        clause = Clause(Indexed(a, -2), Comparator.neq, 4)
-        self.assertTrue(clause.matches({'a': Indexed(a, 3)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1)}))
+        clause = Condition(Indexed(a, -2), CompNEQ(), 4)
+        self.assertTrue(clause.matches({'a': Indexed(a, 3)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 1)}, None))
         
     def test_clause_indexed(self):
         a = Part('a', [1,2,3,4])
         b = Part('b', [1,2,3])
 
-        clause = Clause(Indexed(a, -1), Comparator.eq, Indexed(b, 0))
-        self.assertTrue(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 2)}))
+        clause = Condition(Indexed(a, -1), CompEQ(), Indexed(b, 0))
+        self.assertTrue(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 2)}, None))
 
-        clause = Clause(Indexed(a, 2), Comparator.eq, Indexed(b, 1))
-        self.assertTrue(clause.matches({'a': Indexed(a, 2), 'b': Indexed(b, 2)}))
+        clause = Condition(Indexed(a, 2), CompEQ(), Indexed(b, 1))
+        self.assertTrue(clause.matches({'a': Indexed(a, 2), 'b': Indexed(b, 2)}, None))
 
-        clause = Clause(Indexed(a, 0), Comparator.neq, Indexed(b, 0))
-        self.assertTrue(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 1)}))
+        clause = Condition(Indexed(a, 0), CompNEQ(), Indexed(b, 0))
+        self.assertTrue(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, None))
+        self.assertFalse(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 1)}, None))
 
     def test_can_alter(self):
         a = Part('a', [1,2,3,4])
@@ -53,53 +56,53 @@ class TestModel(unittest.TestCase):
         self.assertEquals([1,2,6,5], a.notes)
 
         modifier = Modifier(Indexed(a, 1), 7)
-        self.assertTrue(modifier.can_alter({'a': Indexed(a, 0)}))
-        self.assertTrue(modifier.can_alter({'a': Indexed(a, 3)}))
-        self.assertFalse(modifier.can_alter({'a': Indexed(a, 1)}))
-        self.assertFalse(modifier.can_alter({'a': Indexed(a, 2)}))
+        self.assertTrue(modifier.can_alter({'a': Indexed(a, 0)}, None))
+        self.assertTrue(modifier.can_alter({'a': Indexed(a, 3)}, None))
+        self.assertFalse(modifier.can_alter({'a': Indexed(a, 1)}, None))
+        self.assertFalse(modifier.can_alter({'a': Indexed(a, 2)}, None))
 
     def test_alter(self):
         a = Part('a', [1,2,3,4])
         b = Part('b', [5,6,7])
 
         modifier = Modifier(Indexed(a, -2), 8)
-        modifier.alter({'a': Indexed(a, 0)})
+        modifier.alter({'a': Indexed(a, 0)}, None)
         self.assertEquals([1,2,8,4], a.notes)
 
         a.create_notes_copy()
 
         modifier = Modifier(Indexed(b, 0), Indexed(a, 1))
-        modifier.alter({'a': Indexed(a, 1), 'b': Indexed(b, 2)})
+        modifier.alter({'a': Indexed(a, 1), 'b': Indexed(b, 2)}, None)
         self.assertEquals([5,6,8], b.notes)
 
     def test_rule_apply_single(self):
         a = Part('a', [1,2,3,4])
         b = Part('b', [5,6,7])
 
-        lhs = [Clause(Indexed(a, 0), Comparator.eq, 3)]
+        lhs = [Condition(Indexed(a, 0), CompEQ(), 3)]
         rhs = [Modifier(Indexed(a, 1), 8)]
         rule = Rule(lhs, rhs)
-        rule.apply({'a': Indexed(a, 1), 'b': Indexed(b, 2)})
+        rule.apply({'a': Indexed(a, 1), 'b': Indexed(b, 2)}, None)
         self.assertEquals([1,2,3,4], a.notes)
-        rule.apply({'a': Indexed(a, 2), 'b': Indexed(b, 2)})
+        rule.apply({'a': Indexed(a, 2), 'b': Indexed(b, 2)}, None)
         self.assertEquals([1,2,3,8], a.notes)
 
     def test_rule_apply_overlapping(self):
         a = Part('a', [1,1,1,1,1])
 
         _ = PAUSE # for readability
-        lhs = [Clause(Indexed(a, 0), Comparator.eq, 1)]
+        lhs = [Condition(Indexed(a, 0), CompEQ(), 1)]
         rhs = [Modifier(Indexed(a, 0), 2), Modifier(Indexed(a, 1), _)]
         rule = Rule(lhs, rhs)
-        rule.apply({'a': Indexed(a, 0)})
+        rule.apply({'a': Indexed(a, 0)}, None)
         self.assertEquals([2, _, 1, 1, 1], a.notes)
-        rule.apply({'a': Indexed(a, 1)})
+        rule.apply({'a': Indexed(a, 1)}, None)
         self.assertEquals([2, _, 1, 1, 1], a.notes)
-        rule.apply({'a': Indexed(a, 2)})
+        rule.apply({'a': Indexed(a, 2)}, None)
         self.assertEquals([2, _, 2, _, 1], a.notes)
-        rule.apply({'a': Indexed(a, 3)})
+        rule.apply({'a': Indexed(a, 3)}, None)
         self.assertEquals([2, _, 2, _, 1], a.notes)
-        rule.apply({'a': Indexed(a, 4)})
+        rule.apply({'a': Indexed(a, 4)}, None)
         self.assertEquals([2, _, 2, _, 1], a.notes)
 
     def test_engine_midi_notes(self):
@@ -109,9 +112,9 @@ class TestModel(unittest.TestCase):
         a.set_property('octava', 0)
         b = Part('b', [0, 3, _])
         b.set_property('octava', 0)
-        parts = [a, b]
+        parts = {'a': a, 'b': b}
 
-        engine = Engine(parts, [])
+        engine = Engine(parts, [], [a, b])
         self.assertEquals(8, engine.iteration_length)
         midi_notes = engine.get_midi_notes()
 
@@ -133,16 +136,16 @@ class TestModel(unittest.TestCase):
         
         a = Part('a', [0, _, 1, _, 0, _, 3, _])
         b = Part('b', [0, 3, _])
-        parts = [a, b]
+        parts = {'a': a, 'b': b}
 
-        lhs = [Clause(Indexed(a, -1), Comparator.neq, _),
-               Clause(Indexed(a, 0), Comparator.eq, _)]
+        lhs = [Condition(Indexed(a, -1), CompNEQ(), _),
+               Condition(Indexed(a, 0), CompEQ(), _)]
         rhs = [Modifier(Indexed(a, -1), _),
                Modifier(Indexed(a, 0), Indexed(a, -1))]
         rule = Rule(lhs, rhs)
         rules = [rule]
 
-        engine = Engine(parts, rules)
+        engine = Engine(parts, rules, [a, b])
         engine.iterate()
 
         self.assertEquals(0, a.pointer)
@@ -156,22 +159,22 @@ class TestModel(unittest.TestCase):
         
         a = Part('a', [0, _, 1, _, 0, _, 3, _])
         b = Part('b', [0, 3, _])
-        parts = [a, b]
+        parts = {'a': a, 'b': b}
 
-        lhs = [Clause(Indexed(a, 0), Comparator.eq, Indexed(b, 0)),
-               Clause(Indexed(a, 1), Comparator.eq, _)]
+        lhs = [Condition(Indexed(a, 0), CompEQ(), Indexed(b, 0)),
+               Condition(Indexed(a, 1), CompEQ(), _)]
         rhs = [Modifier(Indexed(a, 0), Indexed(a, 0))]
         rule1 = Rule(lhs, rhs)
 
-        lhs = [Clause(Indexed(a, -1), Comparator.neq, _),
-               Clause(Indexed(a, 0), Comparator.eq, _)]
+        lhs = [Condition(Indexed(a, -1), CompNEQ(), _),
+               Condition(Indexed(a, 0), CompEQ(), _)]
         rhs = [Modifier(Indexed(a, -1), _),
                Modifier(Indexed(a, 0), Indexed(a, -1))]
         rule2 = Rule(lhs, rhs)
 
         rules = [rule1, rule2]
 
-        engine = Engine(parts, rules)
+        engine = Engine(parts, rules, [a, b])
         engine.iterate()
 
         self.assertEquals(0, a.pointer)

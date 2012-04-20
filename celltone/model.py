@@ -17,33 +17,34 @@
 
 
 # TODO: test AnyIndexed
+# TODO: profiling
 
 from copy import copy, deepcopy
 import threading
 
 PAUSE = '_'
 
-class Logger:
+class Logger(object):
 
     def __init__(self):
         self.items = []
 
-    def add(self, rule, pivot_part, beat_before, beat_after):
-        self.items.append(LogItem(rule, pivot_part, beat_before, beat_after))
+    def add(self, rule, pivot, beat_before, beat_after):
+        self.items.append(LogItem(rule, pivot, beat_before, beat_after))
 
     def clear(self):
         self.items = []
 
-class LogItem:
-    def __init__(self, rule, pivot_part, beat_before, beat_after):
+class LogItem(object):
+    def __init__(self, rule, pivot, beat_before, beat_after):
         self.rule = rule
-        self.pivot_part = pivot_part
+        self.pivot = pivot
         self.beat_before = beat_before
         self.beat_after = beat_after
 
 logger = Logger()
 
-class Config:
+class Config(object):
 
     def __init__(self):
         # defaults
@@ -76,7 +77,7 @@ class Config:
     def get(self, name):
         return self.options[name]
 
-class Part:
+class Part(object):
 
     def __init__(self, name, notes):
         self.name = name
@@ -136,7 +137,7 @@ class Part:
         '''
         Rules should depend on the state of the part before
         the iteration, hence we copy the notes and use them
-        in the clauses and modifiers.
+        in the conditions and modifiers.
         '''
         self.notes_copy = copy(self.notes)
 
@@ -154,70 +155,78 @@ class Part:
     def __str__(self):
         return '%s = [%s]' % (self.name, ', '.join(map(str, self.notes)))
 
-class Clause:
+class Clause(object):
 
-    def __init__(self, some_indexed, comparator, subject):
-        self.some_indexed = some_indexed
-        self.comparator = comparator
+    def __init__(self, subject, object, beat, pivot):
         self.subject = subject
+        self.object = object
+        self.beat = beat
+        self.pivot = pivot
+
+        if isinstance(self.subject, Indexed):
+            self.subject_indexed = self.subject
+        else: # AnyIndexed
+            self.subject_indexed = self.subject.bind(pivot)
+        self.subject_part = self.subject_indexed.part
+        current_index = beat[self.subject_part.name].index
+        self.real_subject_index = self.subject_indexed.index + current_index
+        self.subject_note = self.subject_part.get_note_copy_at(self.real_subject_index)
+
+        if isinstance(self.object, Indexed) or isinstance(self.object, AnyIndexed):
+            if isinstance(self.object, Indexed):
+                object_indexed = self.object
+            else:
+                object_indexed = self.object.bind(pivot)
+            current_object_index = beat[object_indexed.part.name].index
+            self.object_note = object_indexed.part.get_note_copy_at(current_object_index +
+                                                                    object_indexed.index)
+        else:
+            self.object_note = self.object
+
+class Condition(object):
+
+    def __init__(self, subject, comparator, object):
+        self.subject = subject
+        self.comparator = comparator
+        self.object = object
 
     # TODO: cache matching
-    def matches(self, beat, pivot_part):
-
-        if isinstance(self.some_indexed, Indexed):
-            indexed = self.some_indexed
-        else: # AnyIndexed
-            indexed = self.some_indexed.bind(pivot_part)
-
-        part = indexed.part
-        current_index = beat[part.name].index
-        note = part.get_note_copy_at(current_index + indexed.index)
-
-        if isinstance(self.subject, Indexed) or isinstance(self.subject, AnyIndexed):
-            if isinstance(self.subject, Indexed):
-                subject_indexed = self.subject
-            else:
-                subject_indexed = self.subject.bind(pivot_part)
-            current_subject_index = beat[subject_indexed.part.name].index
-            subject_note = subject_indexed.part.get_note_copy_at(current_subject_index +
-                                                                 subject_indexed.index)
-        else:
-            subject_note = self.subject
-        
-        return self.comparator.compare(note, subject_note)
+    def matches(self, beat, pivot):
+        clause = Clause(self.subject, self.object, beat, pivot)
+        return self.comparator.compare(clause.subject_note, clause.object_note)
 
     def __str__(self):
         return '%s %s %s' % \
-            (str(self.some_indexed), str(self.comparator), str(self.subject))
+            (str(self.subject), str(self.comparator), str(self.object))
 
-class Rule:
+class Rule(object):
 
     def __init__(self, lhs, rhs):
         self.lhs = lhs
         self.rhs = rhs
 
-    def apply(self, beat, pivot_part):
-        for clause in self.lhs:
-            if not clause.matches(beat, pivot_part):
+    def apply(self, beat, pivot):
+        for condition in self.lhs:
+            if not condition.matches(beat, pivot):
                 return
         # TODO: see if faster to run can_alter before matching
         for modifier in self.rhs:
-            if not modifier.can_alter(beat, pivot_part):
+            if not modifier.can_alter(beat, pivot):
                 return
 
         beat_before = deepcopy(beat)
 
         for modifier in self.rhs:
-            modifier.alter(beat, pivot_part)
+            modifier.alter(beat, pivot)
 
-        logger.add(self, pivot_part, beat_before, deepcopy(beat))
+        logger.add(self, pivot, beat_before, deepcopy(beat))
 
     def __str__(self):
         lhs = ', '.join(map(str, self.lhs))
         rhs = ', '.join(map(str, self.rhs))
         return '{%s} => {%s}' % (lhs, rhs)
 
-class Indexed:
+class Indexed(object):
 
     def __init__(self, part, index):
         self.part = part
@@ -226,50 +235,27 @@ class Indexed:
     def __str__(self):
         return '%s[%d]' % (self.part.name, self.index)
 
-class Modifier:
+class Modifier(object):
 
-    def __init__(self, some_indexed, subject):
-        self.some_indexed = some_indexed
+    def __init__(self, subject, object):
         self.subject = subject
+        self.object = object
 
-    # TODO: generalise can_alter, alter and Clause.matches
-    def can_alter(self, beat, pivot_part):
-        if isinstance(self.some_indexed, Indexed):
-            indexed = self.some_indexed
-        else: # AnyIndexed
-            indexed = self.some_indexed.bind(pivot_part)
-        part = indexed.part
-        current_index = beat[part.name].index
-        return not part.get_altered_at(current_index + indexed.index)
+    # TODO: generalise can_alter, alter and Condition.matches
+    def can_alter(self, beat, pivot):
+        clause = Clause(self.subject, self.object, beat, pivot)
+        return not clause.subject_part.get_altered_at(clause.real_subject_index)
 
-    def alter(self, beat, pivot_part):
-        if isinstance(self.some_indexed, Indexed):
-            indexed = self.some_indexed
-        else: # AnyIndexed
-            indexed = self.some_indexed.bind(pivot_part)
-        part = indexed.part
-        current_index = beat[part.name].index
-        part = indexed.part
-
-        if isinstance(self.subject, Indexed) or isinstance(self.subject, AnyIndexed):
-            if isinstance(self.subject, Indexed):
-                subject_indexed = self.subject
-            else:
-                subject_indexed = self.subject.bind(pivot_part)
-            current_subject_index = beat[subject_indexed.part.name].index
-            subject_note = subject_indexed.part.get_note_copy_at(current_subject_index +
-                                                                 subject_indexed.index)
-        else:
-            subject_note = self.subject
-
-        part.set_note_at(current_index + indexed.index, subject_note)
+    def alter(self, beat, pivot):
+        clause = Clause(self.subject, self.object, beat, pivot)
+        clause.subject_part.set_note_at(clause.real_subject_index, clause.object_note)
 
     def __str__(self):
-        if self.some_indexed == self.subject:
-            return str(self.some_indexed)
-        return '%s = %s' % (str(self.some_indexed), str(self.subject))
+        if self.subject == self.object:
+            return str(self.subject)
+        return '%s = %s' % (str(self.subject), str(self.object))
 
-class AnyIndexed:
+class AnyIndexed(object):
 
     def __init__(self, part_index, index):
         self.part_index = part_index
@@ -282,7 +268,7 @@ class AnyIndexed:
     def __str__(self):
         return '<%d>[%d]' % (self.part_index, self.index)
 
-class Comparator:
+class Comparator(object):
     def compare(self, note1, note2):
         raise NotImplementedError()
 
@@ -310,7 +296,7 @@ class CompLT(Comparator):
 
 class CompLTE(Comparator):
     def compare(self, note1, note2):
-        return Comparator.eq(note1, note2) or Comparator.lt(note1, note2)
+        return CompEQ().compare(note1, note2) or CompLT().compare(note1, note2)
     def __str__(self):
         return '<='
 
@@ -326,19 +312,18 @@ class CompGT(Comparator):
 
 class CompGTE(Comparator):
     def compare(self, note1, note2):
-        return Comparator.eq(note1, note2) or Comparator.gt(note1, note2)
+        return CompEQ().compare(note1, note2) or CompGT().compare(note1, note2)
     def __str__(self):
         return '>='
 
-class MidiNote:
+class MidiNote(object):
 
     def __init__(self, note, channel, velocity):
         self.note = int(note)
         self.channel = int(channel)
         self.velocity = int(velocity)
 
-
-class Engine:
+class Engine(object):
 
     def __init__(self, parts, rules, part_order):
         self.parts = parts
@@ -398,3 +383,4 @@ class Engine:
 
     def reset_parts(self):
         self.parts = self.original_parts
+

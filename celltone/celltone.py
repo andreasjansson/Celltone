@@ -17,7 +17,7 @@
 
 
 from model import Engine, logger
-from parser import Parser, ParseError
+import parser
 import sys
 import signal
 import time
@@ -27,13 +27,13 @@ import midi
 
 celltone_home = os.path.expanduser('~/.celltone')
 
-class Celltone:
+class Celltone(object):
 
     def __init__(self, code, verbosity = 0):
         if not os.path.exists(celltone_home):
             os.mkdir(celltone_home)
 
-        self.parser = Parser()
+        self.parser = parser.Parser()
         if verbosity > 0:
             from verbose import Verbose
             self.verbose = Verbose(verbosity)
@@ -56,7 +56,7 @@ class Celltone:
         self.stop()
 
         # harmless exceptions may be thrown here. surpress
-        class Devnull(object):
+        class Devnull:
             def write(self, _): pass
         sys.stderr = Devnull()
         sys.exit(0)
@@ -65,7 +65,7 @@ class Celltone:
         if code:
             try:
                 parts, rules, part_order, config = self.parser.parse(code)
-            except ParseError as e:
+            except parser.ParseError as e:
                 die(str(e))
         else:
             die('Error: Empty input')

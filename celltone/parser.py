@@ -170,24 +170,24 @@ def p_rule(p):
     rules.append(Rule(p[1], p[3]))
 
 def p_lhs(p):
-    'lhs : LCURLY clauses RCURLY'
+    'lhs : LCURLY conditions RCURLY'
     p[0] = p[2]
 
-def p_clauses_list(p):
-    'clauses : clause COMMA clauses'
+def p_conditions_list(p):
+    'conditions : condition COMMA conditions'
     p[0] = [p[1]] + p[3]
 
-def p_clauses_single(p):
-    'clauses : clause'
+def p_conditions_single(p):
+    'conditions : condition'
     p[0] = [p[1]]
 
-def p_clauses_empty(p):
-    'clauses : empty'
+def p_conditions_empty(p):
+    'conditions : empty'
     p[0] = []
 
-def p_clause(p):
-    'clause : someindexed comparator subject'
-    p[0] = Clause(p[1], p[2], p[3])
+def p_condition(p):
+    'condition : subject comparator object'
+    p[0] = Condition(p[1], p[2], p[3])
 
 def p_indexed(p):
     'indexed : ID LSQUARE NUMBER RSQUARE'
@@ -208,10 +208,10 @@ def p_comparator(p):
                   | GTE'''
     p[0] = p[1]
 
-def p_subject(p):
-    '''subject : note
-               | indexed
-               | anyindexed'''
+def p_object(p):
+    '''object : note
+              | indexed
+              | anyindexed'''
     p[0] = p[1]
 
 def p_rhs(p):
@@ -231,16 +231,16 @@ def p_modifiers_empty(p):
     p[0] = []
 
 def p_modifier_assign(p):
-    'modifier : someindexed ASSIGN subject'
+    'modifier : subject ASSIGN object'
     p[0] = Modifier(p[1], p[3])
 
 def p_modifier_touch(p):
-    'modifier : someindexed'
+    'modifier : subject'
     p[0] = Modifier(p[1], p[1])
 
 # TODO: better name
-def p_someindexed(p):
-    '''someindexed : indexed
+def p_subject(p):
+    '''subject : indexed
                | anyindexed'''
     p[0] = p[1]
 
@@ -275,7 +275,7 @@ def p_error(p):
     else:
         raise ParseError('Syntax error near end of file')
 
-class Parser:
+class Parser(object):
 
     def __init__(self):
         lex.lex()
