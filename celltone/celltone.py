@@ -16,7 +16,7 @@
 # 
 
 
-from model import Engine, logger
+import model
 import parser
 import sys
 import signal
@@ -70,7 +70,7 @@ class Celltone(object):
         if config.get('partorder'):
             part_order = config.get('partorder')
 
-        self.engine = Engine(parts, rules, part_order)
+        self.engine = model.Engine(parts, rules, part_order)
         iterlength = config.get('iterlength')
         if iterlength is not None:
             self.engine.iteration_length = iterlength
@@ -92,11 +92,11 @@ class Celltone(object):
                     midi_notes = self.engine.get_midi_notes()
 
                 if self.verbose:
-                    self.verbose.print_log(logger.items)
+                    self.verbose.print_log(model.logger.items)
                     self.verbose.print_parts(self.engine.parts)
 
                 self.player.play(midi_notes)
-                logger.clear()
+                model.logger.clear()
                 self.engine.iterate()
         
                 # for some reason, this creates a tiny delay,

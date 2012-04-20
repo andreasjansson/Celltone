@@ -19,7 +19,6 @@
 
 from copy import copy, deepcopy
 import threading
-from midi import MidiNote
 
 PAUSE = '_'
 
@@ -88,11 +87,13 @@ class Part(object):
             'channel': 0,
             'velocity': 100,
             'octava' : 4,
+            'transpose': 0,
             }
         self.prop_bounds = {
             'channel': (0, 127),
             'velocity': (0, 127),
             'octava': (0, 10),
+            'transpose': (-127, 127),
             }
         self.pointer = 0
         self.altered = None
@@ -126,11 +127,12 @@ class Part(object):
         self.altered = [False] * len(self.notes)
 
     def get_midi_note_at(self, index):
+        import midi
         note = self.notes[index % len(self.notes)]
         if note == PAUSE:
             return None
-        note = note + 12 * self.properties['octava']
-        return MidiNote(note, self.properties['channel'], self.properties['velocity'])
+        note = note + self.properties['transpose'] + 12 * self.properties['octava']
+        return midi.MidiNote(note, self.properties['channel'], self.properties['velocity'])
 
     def create_notes_copy(self):
         '''
