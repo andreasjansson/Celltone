@@ -49,9 +49,6 @@ class Celltone(object):
         self.engine = None
         self.set_code(code)
 
-        self.play()
-        self.loop()
-
     def exit(self, signal = None, frame = None):
         self.stop()
 
@@ -70,8 +67,8 @@ class Celltone(object):
         else:
             die('Error: Empty input')
 
-        if config.get('part_order'):
-            part_order = config.get('part_order')
+        if config.get('partorder'):
+            part_order = config.get('partorder')
 
         self.engine = Engine(parts, rules, part_order)
         iterlength = config.get('iterlength')
@@ -161,7 +158,10 @@ def main():
     except KeyboardInterrupt:
         sys.exit(0)
 
-    Celltone(code, verbosity)
+    celltone = Celltone(code, verbosity)
+    celltone.play()
+    celltone.loop()
+
 
 def die(string, return_code = 1):
     sys.stderr.write(string + '\n')

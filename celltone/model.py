@@ -15,12 +15,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # 
 
-
-# TODO: test AnyIndexed
-# TODO: profiling
+# TODO: profiling/optimisation
 
 from copy import copy, deepcopy
 import threading
+from midi import MidiNote
 
 PAUSE = '_'
 
@@ -52,7 +51,7 @@ class Config(object):
             'tempo': 120,
             'subdiv': 16,
             'iterlength': None,
-            'part_order': None,
+            'partorder': None,
             }
 
         # pretty arbitrary upper limits
@@ -60,7 +59,7 @@ class Config(object):
             'tempo': (1, 10000),
             'subdiv': (1, 10000),
             'iterlength': (1, 10000),
-            'part_order': None,
+            'partorder': None,
             }
 
     def set(self, name, value):
@@ -141,9 +140,10 @@ class Part(object):
         '''
         self.notes_copy = copy(self.notes)
 
+    # TODO: make this O(1)
     def other_part_at(self, index):
         '''
-        Pointer implementation.
+        Naive pointer implementation.
         '''
         if index == 0:
             return self
@@ -156,6 +156,11 @@ class Part(object):
         return '%s = [%s]' % (self.name, ', '.join(map(str, self.notes)))
 
 class Clause(object):
+    '''
+    A clause represents the state of a condition or a modifier
+    at one particular beat, on one pivot part. In a matrix, this
+    would be a cell.
+    '''
 
     def __init__(self, subject, object, beat, pivot):
         self.subject = subject
@@ -178,8 +183,8 @@ class Clause(object):
             else:
                 object_indexed = self.object.bind(pivot)
             current_object_index = beat[object_indexed.part.name].index
-            self.object_note = object_indexed.part.get_note_copy_at(current_object_index +
-                                                                    object_indexed.index)
+            self.object_note = object_indexed.part.get_note_copy_at(
+                current_object_index + object_indexed.index)
         else:
             self.object_note = self.object
 
@@ -190,7 +195,6 @@ class Condition(object):
         self.comparator = comparator
         self.object = object
 
-    # TODO: cache matching
     def matches(self, beat, pivot):
         clause = Clause(self.subject, self.object, beat, pivot)
         return self.comparator.compare(clause.subject_note, clause.object_note)
@@ -198,6 +202,25 @@ class Condition(object):
     def __str__(self):
         return '%s %s %s' % \
             (str(self.subject), str(self.comparator), str(self.object))
+
+class Modifier(object):
+
+    def __init__(self, subject, object):
+        self.subject = subject
+        self.object = object
+
+    def can_alter(self, beat, pivot):
+        clause = Clause(self.subject, self.object, beat, pivot)
+        return not clause.subject_part.get_altered_at(clause.real_subject_index)
+
+    def alter(self, beat, pivot):
+        clause = Clause(self.subject, self.object, beat, pivot)
+        clause.subject_part.set_note_at(clause.real_subject_index, clause.object_note)
+
+    def __str__(self):
+        if self.subject == self.object:
+            return str(self.subject)
+        return '%s = %s' % (str(self.subject), str(self.object))
 
 class Rule(object):
 
@@ -234,26 +257,6 @@ class Indexed(object):
 
     def __str__(self):
         return '%s[%d]' % (self.part.name, self.index)
-
-class Modifier(object):
-
-    def __init__(self, subject, object):
-        self.subject = subject
-        self.object = object
-
-    # TODO: generalise can_alter, alter and Condition.matches
-    def can_alter(self, beat, pivot):
-        clause = Clause(self.subject, self.object, beat, pivot)
-        return not clause.subject_part.get_altered_at(clause.real_subject_index)
-
-    def alter(self, beat, pivot):
-        clause = Clause(self.subject, self.object, beat, pivot)
-        clause.subject_part.set_note_at(clause.real_subject_index, clause.object_note)
-
-    def __str__(self):
-        if self.subject == self.object:
-            return str(self.subject)
-        return '%s = %s' % (str(self.subject), str(self.object))
 
 class AnyIndexed(object):
 
@@ -316,29 +319,20 @@ class CompGTE(Comparator):
     def __str__(self):
         return '>='
 
-class MidiNote(object):
-
-    def __init__(self, note, channel, velocity):
-        self.note = int(note)
-        self.channel = int(channel)
-        self.velocity = int(velocity)
-
 class Engine(object):
 
     def __init__(self, parts, rules, part_order):
         self.parts = parts
         self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts.values(), 0)
         self.rules = rules
-        self.link_parts(part_order)
+        link_parts(part_order)
         self.original_parts = deepcopy(parts)
         self.part_order = part_order
     
-    def link_parts(self, part_order):
-        for i, part in enumerate(part_order):
-            part.next_part = part_order[(i + 1) % len(part_order)]
-            part.prev_part = part_order[(i - 1) % len(part_order)]
-
     def get_midi_notes(self):
+        '''
+        Returns a list of time steps, each element being a list of notes.
+        '''
         midi_notes = []
         for i in range(self.iteration_length):
             midi_notes.append([])
@@ -352,11 +346,12 @@ class Engine(object):
         self.reset_altered()
         self.notes_read_copy()
 
+        # Rules are applied for each part as a pivot, for each beat.
         # TODO: optimise
         for rule in self.rules:
-            for beat in self.beats():
-                for part in self.part_order:
-                    rule.apply(beat, part)
+            for pivot in self.part_order:
+                for beat in self.beats():
+                    rule.apply(beat, pivot)
 
         self.update_pointers()
 
@@ -384,3 +379,8 @@ class Engine(object):
     def reset_parts(self):
         self.parts = self.original_parts
 
+
+def link_parts(part_order):
+    for i, part in enumerate(part_order):
+        part.next_part = part_order[(i + 1) % len(part_order)]
+        part.prev_part = part_order[(i - 1) % len(part_order)]

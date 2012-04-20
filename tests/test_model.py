@@ -16,38 +16,91 @@ class TestModel(unittest.TestCase):
         self.assertTrue(CompGTE().compare(1, _))
         self.assertFalse(CompLT().compare(0, _))
 
-    def test_clause_number(self):
+    def test_condition_indexed_number(self):
         a = Part('a', [1,2,3,4])
-        clause = Condition(Indexed(a, -1), CompEQ(), 1)
+        cond = Condition(Indexed(a, -1), CompEQ(), 1)
 
-        self.assertTrue(clause.matches({'a': Indexed(a, 1)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 0)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 2)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 3)}, None))
+        self.assertTrue(cond.matches({'a': Indexed(a, 1)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 0)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 2)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 3)}, None))
 
-        clause = Condition(Indexed(a, -1), CompEQ(), 4)
-        self.assertTrue(clause.matches({'a': Indexed(a, 0)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1)}, None))
+        cond = Condition(Indexed(a, -1), CompEQ(), 4)
+        self.assertTrue(cond.matches({'a': Indexed(a, 0)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 1)}, None))
 
-        clause = Condition(Indexed(a, -2), CompNEQ(), 4)
-        self.assertTrue(clause.matches({'a': Indexed(a, 3)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1)}, None))
-        
-    def test_clause_indexed(self):
+        cond = Condition(Indexed(a, -2), CompNEQ(), 4)
+        self.assertTrue(cond.matches({'a': Indexed(a, 3)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 1)}, None))
+
+    def test_condition_indexed_indexed(self):
         a = Part('a', [1,2,3,4])
         b = Part('b', [1,2,3])
 
-        clause = Condition(Indexed(a, -1), CompEQ(), Indexed(b, 0))
-        self.assertTrue(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 2)}, None))
+        cond = Condition(Indexed(a, -1), CompEQ(), Indexed(b, 0))
+        self.assertTrue(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 2)}, None))
 
-        clause = Condition(Indexed(a, 2), CompEQ(), Indexed(b, 1))
-        self.assertTrue(clause.matches({'a': Indexed(a, 2), 'b': Indexed(b, 2)}, None))
+        cond = Condition(Indexed(a, 2), CompEQ(), Indexed(b, 1))
+        self.assertTrue(cond.matches({'a': Indexed(a, 2), 'b': Indexed(b, 2)}, None))
 
-        clause = Condition(Indexed(a, 0), CompNEQ(), Indexed(b, 0))
-        self.assertTrue(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, None))
-        self.assertFalse(clause.matches({'a': Indexed(a, 1), 'b': Indexed(b, 1)}, None))
+        cond = Condition(Indexed(a, 0), CompNEQ(), Indexed(b, 0))
+        self.assertTrue(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, None))
+        self.assertFalse(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 1)}, None))
+
+    def test_condition_indexed_anyindexed(self):
+        a = Part('a', [1,2,3,4])
+        b = Part('b', [1,2,3])
+
+        link_parts([a, b])
+        cond = Condition(Indexed(a, -1), CompEQ(), AnyIndexed(1, 0))
+        self.assertTrue(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, a))
+        self.assertFalse(cond.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}, b))
+        self.assertFalse(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 2)}, a))
+
+        cond = Condition(Indexed(a, 2), CompEQ(), AnyIndexed(0, 1))
+        self.assertTrue(cond.matches({'a': Indexed(a, 2), 'b': Indexed(b, 2)}, b))
+
+        cond = Condition(Indexed(a, 0), CompNEQ(), AnyIndexed(-1, 0))
+        self.assertTrue(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, a))
+        self.assertFalse(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 1)}, b))
+
+    def test_condition_anyindexed_number(self):
+        a = Part('a', [1,2,3])
+        b = Part('b', [2,3,4,1])
+
+        link_parts([a, b])
+        cond = Condition(AnyIndexed(0, 1), CompEQ(), 1)
+        self.assertTrue(cond.matches({'a': Indexed(a, 2), 'b': Indexed(b, 0)}, a))
+        self.assertFalse(cond.matches({'a': Indexed(a, 1), 'b': Indexed(b, 0)}, a))
+        self.assertFalse(cond.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}, b))
+        self.assertTrue(cond.matches({'a': Indexed(a, 2), 'b': Indexed(b, 2)}, b))
+
+    def test_condition_anyindexed_indexed(self):
+        a = Part('a', [1,2,3])
+        b = Part('b', [2,3,4,1])
+
+        cond = Condition(AnyIndexed(0, 1), CompEQ(), Indexed(a, 1))
+        self.assertTrue(cond.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}, a))
+        self.assertTrue(cond.matches({'a': Indexed(a, 0), 'b': Indexed(b, 2)}, a))
+        self.assertTrue(cond.matches({'a': Indexed(a, 2), 'b': Indexed(b, 0)}, a))
+        self.assertFalse(cond.matches({'a': Indexed(a, 0), 'b': Indexed(b, 0)}, b))
+        self.assertTrue(cond.matches({'a': Indexed(a, 2), 'b': Indexed(b, 2)}, b))
+
+    def test_condition_anyindexed_anyindexed(self):
+        I = Indexed
+
+        a = Part('a', [1,2,3])
+        b = Part('b', [2,3,4,1])
+        c = Part('c', [4,5,1])
+
+        link_parts([a, b, c])
+        cond = Condition(AnyIndexed(0, 1), CompEQ(), AnyIndexed(1, 0))
+        self.assertTrue(cond.matches({'a': I(a, 0), 'b': I(b, 0), 'c': I(c, 1)}, a))
+        self.assertTrue(cond.matches({'a': I(a, 2), 'b': I(b, 1), 'c': I(c, 0)}, b))
+        self.assertTrue(cond.matches({'a': I(a, 0), 'b': I(b, 1), 'c': I(c, 1)}, c))
+        self.assertFalse(cond.matches({'a': I(a, 0), 'b': I(b, 1), 'c': I(c, 2)}, c))
 
     def test_can_alter(self):
         a = Part('a', [1,2,3,4])

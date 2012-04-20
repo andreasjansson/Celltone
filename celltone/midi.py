@@ -15,8 +15,6 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 # 
 
-
-from model import MidiNote
 import time
 import pypm
 import threading
@@ -79,3 +77,9 @@ class PlayerThread(threading.Thread):
             for note in notes:
                 self.player.noteoff(note)
 
+class MidiNote(object):
+
+    def __init__(self, note, channel, velocity):
+        self.note = int(note)
+        self.channel = int(channel)
+        self.velocity = int(velocity)
