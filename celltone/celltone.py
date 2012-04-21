@@ -47,7 +47,7 @@ class Celltone(object):
         self.source_mtime = self.get_source_mtime()
         self.dynamic_update = dynamic_update
         self.output_file = output_file
-        self.length = float(length)
+        self.length = float(length) if length else 0
         self.leftover_midi_notes = None
         self.is_playing = False
 
