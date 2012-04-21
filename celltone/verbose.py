@@ -30,13 +30,13 @@ class Verbose(object):
     def __init__(self, verbosity = 1):
         self.verbosity = verbosity
 
-    def print_parts(self, parts):
+    def print_parts(self, parts, iteration_length):
         find_width()
         if self.verbosity < 1:
             return
 
         for name in sorted(parts.keys()):
-            print(PartFormatter(parts[name]))
+            print(PartFormatter(parts[name], iteration_length))
         print('')
 
     def print_log(self, items):
@@ -50,8 +50,21 @@ class Verbose(object):
 
 class PartFormatter(object):
 
-    def __init__(self, part):
-        self.lines = wrap(str(part))
+    def __init__(self, part, iteration_length):
+        line = part.name + ': '
+        for t in range(iteration_length):
+            i = (part.pointer + t) % len(part.notes)
+            if i == 0:
+                line += '['
+            else:
+                line += ' '
+            line += str(part.notes[i])
+            if i == len(part.notes) - 1:
+                line += ']'
+            else:
+                line += ','
+            
+        self.lines = wrap(line)
 
     def __str__(self):
         return '\n'.join(self.lines)

@@ -128,7 +128,7 @@ class Celltone(object):
 
                 if self.verbose:
                     self.verbose.print_log(model.logger.items)
-                    self.verbose.print_parts(self.engine.parts)
+                    self.verbose.print_parts(self.engine.parts, self.engine.iteration_length)
 
                 self.player.play(midi_notes)
 
