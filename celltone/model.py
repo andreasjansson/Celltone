@@ -40,10 +40,6 @@ class RuleLog(object):
         self.beat_before = beat_before
         self.beat_after = beat_after
 
-# TODO
-class UpdateLog(object):
-    pass
-
 logger = Logger()
 
 class Config(object):
@@ -184,14 +180,16 @@ class Clause(object):
         self.real_subject_index = self.subject_indexed.index + current_index
         self.subject_note = self.subject_part.get_note_copy_at(self.real_subject_index)
 
+        self.object_indexed = None
         if isinstance(self.object, Indexed) or isinstance(self.object, AnyIndexed):
             if isinstance(self.object, Indexed):
-                object_indexed = self.object
+                self.object_indexed = self.object
             else:
-                object_indexed = self.object.bind(pivot)
-            current_object_index = beat[object_indexed.part.name].index
-            self.object_note = object_indexed.part.get_note_copy_at(
-                current_object_index + object_indexed.index)
+                self.object_indexed = self.object.bind(pivot)
+            current_object_index = beat[self.object_indexed.part.name].index
+            self.real_object_index = self.object_indexed.index + current_index
+            self.object_part = self.object_indexed.part
+            self.object_note = self.object_part.get_note_copy_at(self.real_object_index)
         else:
             self.object_note = self.object
 

@@ -18,7 +18,7 @@
 
 import os
 import textwrap
-from model import Indexed
+from model import Clause
 
 DEFAULT_WIDTH = 80
 SPACES = 5
@@ -47,7 +47,7 @@ class Verbose(object):
         for item in items:
             print(RuleFormatter(item, self.verbosity >= 3))
         print('')
-            
+
 class PartFormatter(object):
 
     def __init__(self, part):
@@ -83,21 +83,21 @@ class RuleFormatter(object):
         self.format_list(self.item.rule.rhs, self.item.beat_after)
 
     def format_list(self, clauses, beat):
+        pivot = self.item.pivot
         participants = {}
-        # clause is really either clause or modifier, but i couldn't
-        # come up with a good name for it
-        for clause in clauses:
-            name = clause.indexed.part.name
+        for c in clauses:
+            clause = Clause(c.subject, c.object, beat, pivot)
+            name = clause.subject_part.name
             # beat is a copy, so we can do what we want with it
             indexed = beat[name]
             part = indexed.part
             if name not in participants:
                 participants[name] = part
                 part.involved_indices = []
-            index = (indexed.index + clause.indexed.index) % len(part.notes)
+            index = (clause.real_subject_index) % len(part.notes)
             part.involved_indices.append(index)
-            if isinstance(clause.subject, Indexed):
-                index = (indexed.index + clause.subject.index) % len(part.notes)
+            if clause.object_indexed:
+                index = (clause.real_object_index) % len(part.notes)
                 part.involved_indices.append(index)
 
         for i, name in enumerate(sorted(participants.keys())):
