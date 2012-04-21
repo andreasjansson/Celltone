@@ -128,12 +128,12 @@ class Part(object):
         self.altered = [False] * len(self.notes)
 
     def get_midi_note_at(self, index):
-        import midi
+        from cellmidi import MidiNote
         note = self.notes[index % len(self.notes)]
         if note == PAUSE:
             return None
         note = note + self.properties['transpose'] + 12 * self.properties['octava']
-        return midi.MidiNote(note, self.properties['channel'], self.properties['velocity'])
+        return MidiNote(note, self.properties['channel'], self.properties['velocity'])
 
     def create_notes_copy(self):
         '''

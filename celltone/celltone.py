@@ -24,13 +24,14 @@ import time
 import os
 import stat
 import os.path
-import midi
+import cellmidi
 
 celltone_home = os.path.expanduser('~/.celltone')
 
 class Celltone(object):
 
-    def __init__(self, code, verbosity = 0, source_file = None, dynamic_update = False):
+    def __init__(self, code, verbosity = 0, source_file = None, dynamic_update = False,
+                 output_file = None, length = None):
         if not os.path.exists(celltone_home):
             os.mkdir(celltone_home)
 
@@ -45,22 +46,11 @@ class Celltone(object):
         self.source_file = source_file
         self.source_mtime = self.get_source_mtime()
         self.dynamic_update = dynamic_update
+        self.output_file = output_file
+        self.length = float(length)
         self.leftover_midi_notes = None
         self.is_playing = False
-        self.player = None
-        self.engine = None
-        self.set_code(code)
 
-    def exit(self, signal = None, frame = None):
-        self.stop()
-
-        # harmless exceptions may be thrown here. surpress
-        class Devnull:
-            def write(self, _): pass
-        sys.stderr = Devnull()
-        sys.exit(0)
-
-    def set_code(self, code):
         if code:
             try:
                 p = parser.Parser()
@@ -70,7 +60,24 @@ class Celltone(object):
         else:
             die('Error: Empty input')
         self.engine = model.Engine(parts, rules, part_order, config)
-        self.player = midi.Player(config.get('tempo'), config.get('subdiv'))
+        tempo = config.get('tempo')
+        subdiv = config.get('subdiv')
+        if self.output_file:
+            self.midi_handler = cellmidi.Writer(output_file, tempo, subdiv)
+        else:
+            self.midi_handler = cellmidi.Player(tempo, subdiv)
+
+    def exit(self, signal = None, frame = None):
+        self.stop()
+
+        if self.output_file:
+            self.midi_handler.write()
+
+        # harmless exceptions may be thrown here. surpress
+        class Devnull:
+            def write(self, _): pass
+        sys.stderr = Devnull()
+        sys.exit(0)
 
     def get_source_mtime(self):
         st = os.stat(self.source_file)
@@ -89,17 +96,17 @@ class Celltone(object):
 
     def update_code(self, code):
         '''
-        Dynamically update model and player based on what
+        Dynamically update model and midi_handler based on what
         has changed in the code.
         '''
         if not code:
-            notice('File is empty')
+            warning('File is empty')
             return
         try:
             p = parser.Parser()
             parts, rules, part_order, config = p.parse(code)
         except parser.ParseError as e:
-            notice(str(e))
+            warning(str(e))
             return
 
         if config.get('partorder'):
@@ -109,8 +116,8 @@ class Celltone(object):
         self.engine.update_rules(rules)
         self.engine.update_part_order(part_order)
         self.engine.update_config(config)
-        self.player.set_tempo(config.get('tempo'))
-        self.player.set_subdivision(config.get('subdiv'))
+        self.midi_handler.set_tempo(config.get('tempo'))
+        self.midi_handler.set_subdivision(config.get('subdiv'))
 
     def loop(self, initial_midi_notes = None):
         '''
@@ -130,7 +137,10 @@ class Celltone(object):
                     self.verbose.print_log(model.logger.items)
                     self.verbose.print_parts(self.engine.parts, self.engine.iteration_length)
 
-                self.player.play(midi_notes)
+                self.midi_handler.play(midi_notes)
+
+                if self.length and self.midi_handler.time >= self.length:
+                    self.exit()
 
                 if self.dynamic_update:
                     self.update()
@@ -141,10 +151,11 @@ class Celltone(object):
                 # for some reason, this creates a tiny delay,
                 # making it unusable. for now, CTRL-C will take
                 # some time to kick in.
-                # while self.player.thread.is_alive():
-                #     self.player.thread.join(1)
-                self.player.thread.join()
+                # while self.midi_handler.thread.is_alive():
+                #     self.midi_handler.thread.join(1)
+                self.midi_handler.thread.join()
             else:
+                # poll for another thread to call play()
                 time.sleep(0.5)
 
     def play(self):
@@ -157,20 +168,23 @@ class Celltone(object):
             return
 
         self.is_playing = False
-        self.leftover_midi_notes = self.player.stop()
+        self.leftover_midi_notes = self.midi_handler.stop()
 
     def stop(self):
         if not self.is_playing:
             return
 
         self.is_playing = False
-        self.player.stop()
+        self.midi_handler.stop()
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description = 'Process Celltone code')
-    parser.add_argument('--update', '-u', action = 'store_true', help = 'Allow for dynamic updating of source file')
+    parser.add_argument('--update', '-u', action = 'store_true',
+                        help = 'Allow for dynamic updating of source file during runtime')
+    parser.add_argument('--file', '-f', help = 'Output to MIDI file instead of the MIDI device')
+    parser.add_argument('--length', '-l', help = 'Stop after <LENGTH> seconds')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-v', action = 'store_true', help = 'verbose')
     group.add_argument('-vv', action = 'store_true', help = 'more verbose')
@@ -199,7 +213,7 @@ def main():
     except KeyboardInterrupt:
         sys.exit(0)
 
-    celltone = Celltone(code, verbosity, args.filename, args.update)
+    celltone = Celltone(code, verbosity, args.filename, args.update, args.file, args.length)
     celltone.play()
     celltone.loop()
 

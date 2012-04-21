@@ -1,0 +1,32 @@
+# Indexed Parts - Celltone example
+
+# This little example shows how to use indexed parts (e.g. <1>[0]).
+# It gets stuck in a local maxima really early on.
+
+a = [0, _, _]
+b = [_, _]
+c = [0, _, _, _, _]
+
+a.transpose = 0
+b.transpose = 5
+c.transpose = 7
+
+a.octava = 5
+b.octava = 5
+c.octava = 5
+
+a.channel = 0
+b.channel = 0
+c.channel = 0
+
+#{<0>[0] == _, <1>[0] == _} => {<0>[1] = 14, <1>[1] = 12, <2>[1] = _}
+{<0>[0] != _, <0>[0] != _, <0>[0] == 4} => {<0>[0] = _, <2>[0] = 7}
+{<0>[0] != _, <0>[0] != _, <0>[0] == 7} => {<0>[0] = _, <2>[0] = 9}
+{<0>[0] != _, <0>[0] != _, <0>[0] == 9} => {<0>[0] = _, <2>[0] = 0}
+{<0>[0] != _, <0>[0] != _} => {<0>[0] = _, <2>[0] = <0>[0], <0>[2] = 4, <1>[2] = 7}
+
+#{<0>[0] != _} => {<0>[0] = _, <0>[1], <1>[0], <2>[0]}
+
+<tempo> = 100
+
+#<iterlength> = 8
