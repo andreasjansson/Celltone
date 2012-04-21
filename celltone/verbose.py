@@ -58,6 +58,9 @@ class PartFormatter(object):
                 line += '['
             else:
                 line += ' '
+            note = part.notes[i]
+            if note == '_' or (note < 10 and note >= 0):
+                line += ' '
             line += str(part.notes[i])
             if i == len(part.notes) - 1:
                 line += ']'
