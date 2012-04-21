@@ -34,6 +34,12 @@ class Player(object):
         self.thread = None
         self.subdivision = 1.0 / subdivision
 
+    def set_tempo(self, tempo):
+        self.bpm = float(tempo)
+
+    def set_subdivision(self, subdivision):
+        self.subdivision = 1.0 / subdivision
+
     def play(self, midi_notes):
         self.thread = PlayerThread(self, midi_notes)
         self.thread.start()

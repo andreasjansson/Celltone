@@ -22,6 +22,7 @@ import sys
 import signal
 import time
 import os
+import stat
 import os.path
 import midi
 
@@ -29,22 +30,23 @@ celltone_home = os.path.expanduser('~/.celltone')
 
 class Celltone(object):
 
-    def __init__(self, code, verbosity = 0):
+    def __init__(self, code, verbosity = 0, source_file = None, dynamic_update = False):
         if not os.path.exists(celltone_home):
             os.mkdir(celltone_home)
 
-        self.parser = parser.Parser()
+        signal.signal(signal.SIGINT, self.exit)
+
         if verbosity > 0:
             from verbose import Verbose
             self.verbose = Verbose(verbosity)
         else:
             self.verbose = None
 
-        signal.signal(signal.SIGINT, self.exit)
-
+        self.source_file = source_file
+        self.source_mtime = self.get_source_mtime()
+        self.dynamic_update = dynamic_update
         self.leftover_midi_notes = None
         self.is_playing = False
-
         self.player = None
         self.engine = None
         self.set_code(code)
@@ -61,21 +63,55 @@ class Celltone(object):
     def set_code(self, code):
         if code:
             try:
-                parts, rules, part_order, config = self.parser.parse(code)
+                p = parser.Parser()
+                parts, rules, part_order, config = p.parse(code)
             except parser.ParseError as e:
                 die(str(e))
         else:
             die('Error: Empty input')
+        self.engine = model.Engine(parts, rules, part_order, config)
+        self.player = midi.Player(config.get('tempo'), config.get('subdiv'))
+
+    def get_source_mtime(self):
+        st = os.stat(self.source_file)
+        return st[stat.ST_MTIME]
+
+    def source_file_changed(self):
+        return self.source_mtime != self.get_source_mtime()
+
+    def update(self):
+        if self.source_file_changed():
+            print 'changed'
+            self.source_mtime = self.get_source_mtime()
+            code = ''
+            with open(self.source_file) as f:
+                code = ''.join(f.readlines())
+            self.update_code(code)
+
+    def update_code(self, code):
+        '''
+        Dynamically update model and player based on what
+        has changed in the code.
+        '''
+        if not code:
+            notice('File is empty')
+            return
+        try:
+            p = parser.Parser()
+            parts, rules, part_order, config = p.parse(code)
+        except parser.ParseError as e:
+            notice(str(e))
+            return
 
         if config.get('partorder'):
             part_order = config.get('partorder')
 
-        self.engine = model.Engine(parts, rules, part_order)
-        iterlength = config.get('iterlength')
-        if iterlength is not None:
-            self.engine.iteration_length = iterlength
-
-        self.player = midi.Player(config.get('tempo'), config.get('subdiv'))
+        self.engine.update_parts(parts)
+        self.engine.update_rules(rules)
+        self.engine.update_part_order(part_order)
+        self.engine.update_config(config)
+        self.player.set_tempo(config.get('tempo'))
+        self.player.set_subdivision(config.get('subdiv'))
 
     def loop(self, initial_midi_notes = None):
         '''
@@ -96,6 +132,10 @@ class Celltone(object):
                     self.verbose.print_parts(self.engine.parts)
 
                 self.player.play(midi_notes)
+
+                if self.dynamic_update:
+                    self.update()
+
                 model.logger.clear()
                 self.engine.iterate()
         
@@ -126,12 +166,12 @@ class Celltone(object):
 
         self.is_playing = False
         self.player.stop()
-        self.engine.reset_parts()
 
 
 def main():
     import argparse
     parser = argparse.ArgumentParser(description = 'Process Celltone code')
+    parser.add_argument('--update', '-u', action = 'store_true', help = 'Allow for dynamic updating of source file')
     group = parser.add_mutually_exclusive_group()
     group.add_argument('-v', action = 'store_true', help = 'verbose')
     group.add_argument('-vv', action = 'store_true', help = 'more verbose')
@@ -149,6 +189,8 @@ def main():
 
     try:
         if not args.filename or args.filename == '-':
+            if args.update:
+                die('Cannot dynamically update from stdin')
             code = ''.join(sys.stdin.readlines())
         else:
             if not os.path.exists(args.filename):
@@ -158,7 +200,7 @@ def main():
     except KeyboardInterrupt:
         sys.exit(0)
 
-    celltone = Celltone(code, verbosity)
+    celltone = Celltone(code, verbosity, args.filename, args.update)
     celltone.play()
     celltone.loop()
 
@@ -169,6 +211,9 @@ def die(string, return_code = 1):
 
 def warning(string):
     sys.stderr.write('***** WARNING: ' + string + ' *****\n')
+
+def notice(string):
+    sys.stderr.write('Notice: ' + string + '\n')        
 
 if __name__ == '__main__':
     main()

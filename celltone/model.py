@@ -27,18 +27,22 @@ class Logger(object):
     def __init__(self):
         self.items = []
 
-    def add(self, rule, pivot, beat_before, beat_after):
-        self.items.append(LogItem(rule, pivot, beat_before, beat_after))
+    def add(self, log_item):
+        self.items.append(log_item)
 
     def clear(self):
         self.items = []
 
-class LogItem(object):
+class RuleLog(object):
     def __init__(self, rule, pivot, beat_before, beat_after):
         self.rule = rule
         self.pivot = pivot
         self.beat_before = beat_before
         self.beat_after = beat_after
+
+# TODO
+class UpdateLog(object):
+    pass
 
 logger = Logger()
 
@@ -80,6 +84,7 @@ class Part(object):
     def __init__(self, name, notes):
         self.name = name
         self.notes = notes
+        self.original_notes = copy(notes)
         self.create_notes_copy()
 
         # defaults
@@ -244,7 +249,7 @@ class Rule(object):
         for modifier in self.rhs:
             modifier.alter(beat, pivot)
 
-        logger.add(self, pivot, beat_before, deepcopy(beat))
+        logger.add(RuleLog(self, pivot, beat_before, deepcopy(beat)))
 
     def __str__(self):
         lhs = ', '.join(map(str, self.lhs))
@@ -323,14 +328,59 @@ class CompGTE(Comparator):
 
 class Engine(object):
 
-    def __init__(self, parts, rules, part_order):
+    def __init__(self, parts, rules, part_order, config):
+
         self.parts = parts
-        self.iteration_length = reduce(lambda x, y: max(x, len(y.notes)), parts.values(), 0)
+
+        iterlength = config.get('iterlength')
+        if iterlength is None:
+            self.iteration_length = self.longest_part_length()
+        else:
+            self.engine.iteration_length = iterlength
+
         self.rules = rules
+
+        if config.get('partorder'):
+            part_order = config.get('partorder')
+        
         link_parts(part_order)
-        self.original_parts = deepcopy(parts)
         self.part_order = part_order
+
+    def longest_part_length(self):
+        return reduce(lambda x, y: max(x, len(y.notes)), self.parts.values(), 0)
+
+    def update_parts(self, parts):
+        deleted = self.parts.keys()
+        for name, part in parts.iteritems():
+            deleted = filter(lambda x: x != name, deleted)
+            if name not in self.parts or part.notes != self.parts[name].original_notes:
+                print name
+                self.parts[name] = part
+            self.parts[name].properties = part.properties
+        print deleted
+        for name in deleted:
+            del parts[name]
+
+    def update_rules(self, rules):
+        self.rules = rules
+
+    def update_part_order(self, part_order):
+        def part_name(part):
+            return part.name
+        if map(part_name, part_order) != (part_name, self.part_order):
+            new_part_order = []
+            for part in part_order:
+                new_part_order.append(self.parts[part.name])
+            self.part_order = new_part_order
+            link_parts(self.part_order)
     
+    def update_config(self, config):
+        iterlength = config.get('iterlength')
+        if iterlength is None:
+            self.iteration_length = self.longest_part_length()
+        else:
+            self.engine.iteration_length = iterlength
+
     def get_midi_notes(self):
         '''
         Returns a list of time steps, each element being a list of notes.
@@ -377,9 +427,6 @@ class Engine(object):
     def update_pointers(self):
         for part in self.parts.values():
             part.pointer = (part.pointer + self.iteration_length) % len(part.notes)
-
-    def reset_parts(self):
-        self.parts = self.original_parts
 
 
 def link_parts(part_order):

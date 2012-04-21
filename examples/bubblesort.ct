@@ -23,27 +23,3 @@ x.velocity = 0
 # less than any note.
 {x[0] != 0, x[-1] != 1, a[-1] > a[0]} => {a[-1] = a[0], a[0] = a[-1]} # ascending
 {x[0] != 0, x[-1] != 1, b[-1] < b[0]} => {b[-1] = b[0], b[0] = b[-1]} # descending
-
-# drums
-d = [0, _, 8, 8, 0, _, _, 0, _, _, 0, _, 0, 8, 10, 8]
-d.channel = 2
-d.octava = 3
-
-# bass
-# comes in once the notes have been sorted.
-e = [_, _, _, _]
-e.octava = 3
-e.channel = 3
-
-# simple bass progression
-{e[0] == 0} => {e[0] = 2, e[2] = 14}
-{e[0] == 2} => {e[0] = -4, e[2] = 8}
-{e[0] == -4} => {e[0] = -5, e[2] = 7}
-{e[0] == -5} => {e[0] = 0, e[2] = 12}
-
-# when the first note in b is 27 and the last note in a is 26,
-# we assume that both parts have been sorted, and we start the bass part.
-{x[0] == 0, b[0] == 27, a[-1] == 26} => {e[0] = 0, e[2] = 12}
-
-<tempo> = 124
-<subdiv> = 16

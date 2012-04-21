@@ -16,6 +16,8 @@
 # 
 
 
+# TODO: Use classes for both lex and yacc
+
 import ply.lex as lex
 import ply.yacc as yacc
 import sys
@@ -153,6 +155,8 @@ def p_note_pause(p):
 
 def p_property(p):
     'property : ID DOT ID'
+    if p[1] not in parts:
+        raise SemanticError(p.lineno(1), "Undefined part '%s'" % p[1])
     p[0] = {'part': parts[p[1]], 'prop': p[3]}
 
 def p_propassign_number(p):
@@ -278,6 +282,12 @@ def p_error(p):
 class Parser(object):
 
     def __init__(self):
+        global parts, rules, part_order, config
+        parts = {}
+        rules = []
+        part_order = []
+        config = Config()
+        
         lex.lex()
         from celltone import celltone_home
         yacc.yacc(debug = 0, tabmodule = 'ply_parsetab', outputdir = celltone_home)
