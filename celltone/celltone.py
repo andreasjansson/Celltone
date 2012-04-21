@@ -81,7 +81,6 @@ class Celltone(object):
 
     def update(self):
         if self.source_file_changed():
-            print 'changed'
             self.source_mtime = self.get_source_mtime()
             code = ''
             with open(self.source_file) as f:

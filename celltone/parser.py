@@ -132,6 +132,8 @@ def p_partassign(p):
 def p_notelist(p):
     'notelist : LSQUARE notes RSQUARE'
     p[0] = p[2]
+    if len(p[0]) == 0:
+        raise SemanticError(p.lineno(1), 'Empty note lists are not permitted')
 
 def p_notes_list(p):
     'notes : note COMMA notes'
@@ -143,7 +145,7 @@ def p_notes_single(p):
 
 def p_notes_empty_error(p):
     'notes : empty'
-    raise SemanticError(p.lineno(1), 'Empty note lists are not permitted')
+    p[0] = []
 
 def p_note_number(p):
     'note : NUMBER'
@@ -259,6 +261,8 @@ def p_confassign(p):
 def p_partlist(p):
     'partlist : LSQUARE parts RSQUARE'
     p[0] = p[2]
+    if len(p[0]) == 0:
+        raise SemanticError(p.lineno(1), 'Empty part lists are not permitted')
 
 def p_parts_list(p):
     'parts : ID COMMA parts'
@@ -270,8 +274,7 @@ def p_parts_single(p):
 
 def p_parts_empty_error(p):
     'parts : empty'
-    raise SemanticError(p.lineno(1), 'Empty part lists are not permitted')
-
+    p[0] = []
 
 def p_error(p):
     if p:

@@ -334,7 +334,7 @@ class Engine(object):
         if iterlength is None:
             self.iteration_length = self.longest_part_length()
         else:
-            self.engine.iteration_length = iterlength
+            self.iteration_length = iterlength
 
         self.rules = rules
 
@@ -352,10 +352,8 @@ class Engine(object):
         for name, part in parts.iteritems():
             deleted = filter(lambda x: x != name, deleted)
             if name not in self.parts or part.notes != self.parts[name].original_notes:
-                print name
                 self.parts[name] = part
             self.parts[name].properties = part.properties
-        print deleted
         for name in deleted:
             del parts[name]
 
@@ -377,7 +375,7 @@ class Engine(object):
         if iterlength is None:
             self.iteration_length = self.longest_part_length()
         else:
-            self.engine.iteration_length = iterlength
+            self.iteration_length = iterlength
 
     def get_midi_notes(self):
         '''
