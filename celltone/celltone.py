@@ -31,11 +31,17 @@ celltone_home = os.path.expanduser('~/.celltone')
 class Celltone(object):
 
     def __init__(self, code, verbosity = 0, source_file = None, dynamic_update = False,
-                 output_file = None, length = None):
+                 output_file = None, length = None, die_on_error = True,
+                 catch_sigint = True):
         if not os.path.exists(celltone_home):
             os.mkdir(celltone_home)
 
-        signal.signal(signal.SIGINT, self.exit)
+        if catch_sigint:
+            def signal_exit(*args):
+                self.exit()
+                sys.exit(0)
+            signal.signal(signal.SIGINT, signal_exit)
+        self.die_on_error = die_on_error
 
         if verbosity > 0:
             from verbose import Verbose
@@ -43,8 +49,9 @@ class Celltone(object):
         else:
             self.verbose = None
 
-        self.source_file = source_file
-        self.source_mtime = self.get_source_mtime()
+        if dynamic_update:
+            self.source_file = source_file
+            self.source_mtime = self.get_source_mtime()
         self.dynamic_update = dynamic_update
         self.output_file = output_file
         self.length = float(length) if length else 0
@@ -67,17 +74,22 @@ class Celltone(object):
         else:
             self.midi_handler = cellmidi.Player(tempo, subdiv)
 
+    def error(self, text):
+        if self.die_on_error:
+            die(text)
+        else:
+            raise Exception(text)
+
     def exit(self, signal = None, frame = None):
         self.stop()
 
         if self.output_file:
             self.midi_handler.write()
 
-        # harmless exceptions may be thrown here. surpress
+        # harmless exceptions may be raised here. surpress
         class Devnull:
             def write(self, _): pass
         sys.stderr = Devnull()
-        sys.exit(0)
 
     def get_source_mtime(self):
         st = os.stat(self.source_file)
@@ -140,7 +152,7 @@ class Celltone(object):
                 self.midi_handler.play(midi_notes)
 
                 if self.length and self.midi_handler.time >= self.length:
-                    self.exit()
+                    break
 
                 if self.dynamic_update:
                     self.update()
@@ -157,6 +169,7 @@ class Celltone(object):
             else:
                 # poll for another thread to call play()
                 time.sleep(0.5)
+        self.exit()
 
     def play(self):
         if not len(self.engine.parts):
@@ -177,6 +190,9 @@ class Celltone(object):
         self.is_playing = False
         self.midi_handler.stop()
 
+    def start(self):
+        self.play()
+        self.loop()
 
 def main():
     import argparse
@@ -214,8 +230,8 @@ def main():
         sys.exit(0)
 
     celltone = Celltone(code, verbosity, args.filename, args.update, args.file, args.length)
-    celltone.play()
-    celltone.loop()
+    celltone.start()
+    sys.exit(0)
 
 
 def die(string, return_code = 1):
