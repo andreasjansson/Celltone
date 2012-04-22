@@ -79,12 +79,9 @@ class Player(Handler):
     def __init__(self, bpm, subdivision):
         Handler.__init__(self, bpm, subdivision)
 
-        try:
-            pypm.Initialize()
-            dev = pypm.GetDefaultOutputDeviceID()
-            self.midi_out = pypm.Output(dev)
-        except Exception as e:
-            celltone.die('Failed to start MIDI: ' + str(e))
+        pypm.Initialize()
+        dev = pypm.GetDefaultOutputDeviceID()
+        self.midi_out = pypm.Output(dev)
 
     def noteon(self, midi_note):
         if self.check_midi_note(midi_note):

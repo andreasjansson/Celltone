@@ -63,16 +63,19 @@ class Celltone(object):
                 p = parser.Parser()
                 parts, rules, part_order, config = p.parse(code)
             except parser.ParseError as e:
-                die(str(e))
+                self.error(str(e))
         else:
-            die('Error: Empty input')
+            self.error('Error: Empty input')
         self.engine = model.Engine(parts, rules, part_order, config)
         tempo = config.get('tempo')
         subdiv = config.get('subdiv')
         if self.output_file:
             self.midi_handler = cellmidi.Writer(output_file, tempo, subdiv)
         else:
-            self.midi_handler = cellmidi.Player(tempo, subdiv)
+            try:
+                self.midi_handler = cellmidi.Player(tempo, subdiv)
+            except Exception, e:
+                self.error('Failed to start MIDI: ' + str(e))
 
     def error(self, text):
         if self.die_on_error:
@@ -173,7 +176,7 @@ class Celltone(object):
 
     def play(self):
         if not len(self.engine.parts):
-            die('Error: No parts to play')
+            self.error('Error: No parts to play')
         self.is_playing = True
 
     def pause(self):
@@ -219,11 +222,11 @@ def main():
     try:
         if not args.filename or args.filename == '-':
             if args.update:
-                die('Cannot dynamically update from stdin')
+                self.error('Cannot dynamically update from stdin')
             code = ''.join(sys.stdin.readlines())
         else:
             if not os.path.exists(args.filename):
-                die('Error: No such file \'%s\'' % args.filename)
+                self.error('Error: No such file \'%s\'' % args.filename)
             with open(args.filename) as f:
                 code = ''.join(f.readlines())
     except KeyboardInterrupt:
