@@ -33,6 +33,9 @@ class Celltone(object):
     def __init__(self, code, verbosity = 0, source_file = None, dynamic_update = False,
                  output_file = None, length = None, die_on_error = True,
                  catch_sigint = True):
+
+        print die_on_error
+
         if not os.path.exists(celltone_home):
             os.mkdir(celltone_home)
 
@@ -232,8 +235,8 @@ def main():
     except KeyboardInterrupt:
         sys.exit(0)
 
-    celltone = Celltone(code, verbosity, args.filename, args.update, args.file, args.length)
-    celltone.start()
+    ct = Celltone(code, verbosity, args.filename, args.update, args.file, args.length)
+    ct.start()
     sys.exit(0)
 
 
