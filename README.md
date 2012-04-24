@@ -3,43 +3,10 @@ Celltone
 
 *A simple programming language for generative music composition using cellular automata*
 
+Demo
+----
 
-Installation
-------------
-
-Installation is pretty straight forward -- at least once you have pyPortMidi installed.
-
-First, make sure you have the python, python-setuptools and portmidi packages.
-On Linux you also need the ALSA development packages. Then, download pyPortMidi. I use
-aalex's fork on BitBucket: https://bitbucket.org/aalex/pyportmidi/downloads/python-portmidi-0.0.7.tar.gz
-In the python-portmidi directory, run `sudo python setup.py install`. If this fails, it should hint
-at what went wrong. Maybe you need to run `sudo easy_install pyrex`? 
-There's good documentation at https://bitbucket.org/aalex/pyportmidi/wiki/Home
-on how to get pyPortMidi working.
-
-When that is done, download the Celltone sources, cd into the Celltone directory, and run `sudo python setup.py install`.
-
-Running Celltone
-----------------
-
-Once installed, run Celltone by giving it a filename as an argument
-
-    celltone examples/bubblesort.ct
-
-
-To enable debug output, add `-v`, `-vv` or `-vvv` as an argument.
-`-v` will output the current parts and their notes, `-vv` will
-additionally output the rules that were used in this generation, and
-`-vvv` will also indicate which notes were used in the application
-of the rule.
-
-
-MIDI output
------------
-
-When you run Celltone it outputs MIDI. Use a tool like pmdefaults or
-qjackctl to route the MIDI output to some MIDI input device.
-
+To get a feel for what it is, there's a little demo up at http://demo.celltone-lang.com.
 
 The language
 ------------
@@ -64,8 +31,6 @@ Rules are used to transform the parts. Example:
 This example rule would transform the part we defined earlier into
 
     p = [_, 2, _, 4, _, _, 7, _, _]
-
-
 
 ### Iterations and cyclicity ###
 
@@ -142,8 +107,6 @@ in the source file. At the moment, `channel`, `velocity`,
     a.velocity = 90
     a.octava = 5
 
-
-
 ### Global properties ###
 
 Global properties affect the piece as a whole. Currently the
@@ -156,4 +119,57 @@ available properties are `<tempo>`, `<iterlength>`, `<subdiv>`, `<transpose>` an
 ### Comments ###
 
 Comments start with `#` and end at the end of the line.
+
+
+Installation
+------------
+
+Installation is pretty straight forward -- at least once you have pyPortMidi installed.
+
+First, make sure you have the python, python-setuptools and portmidi packages.
+On Linux you also need the ALSA development packages. Then, download pyPortMidi. I use
+aalex's fork on BitBucket: https://bitbucket.org/aalex/pyportmidi/downloads/python-portmidi-0.0.7.tar.gz
+In the python-portmidi directory, run `sudo python setup.py install`. If this fails, it should hint
+at what went wrong. Maybe you need to run `sudo easy_install pyrex`? 
+There's good documentation at https://bitbucket.org/aalex/pyportmidi/wiki/Home
+on how to get pyPortMidi working.
+
+When that is done, download the Celltone sources, cd into the Celltone directory, and run `sudo python setup.py install`.
+
+Running Celltone
+----------------
+
+Once installed, run Celltone by giving it a filename as an argument
+
+    celltone examples/bubblesort.ct
+    
+To see the available command line options, type
+
+    celltone -h
+
+Debug output
+------------
+
+To enable debug output, add `-v`, `-vv` or `-vvv` as an argument.
+`-v` will output the current parts and their notes, `-vv` will
+additionally output the rules that were used in this generation, and
+`-vvv` will also indicate which notes were used in the application
+of the rule.
+
+MIDI output
+-----------
+
+By default, output is fed to the default MIDI device in realtime,
+using PortMidi. Use a tool like pmdefaults or
+qjackctl to route the MIDI output to some MIDI input device. 
+
+You can also use Celltone to generate MIDI files
+offline using the `--file` command line flag.
+
+Runtime source file updates
+---------------------------
+
+Celltone can be used as a performance tool, by specifying the
+`--update` command line flag. This allows you to update the source
+file in realtime, during playback.
 
