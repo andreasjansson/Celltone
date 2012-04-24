@@ -26,7 +26,7 @@ except ImportError:
 try:
     import pypm
 except ImportError:
-    celltone.notice('No pypm module, midi playing will not work')
+    celltone.notice('No pypm module, midi playback will not work')
             
 class Handler(object):
 
