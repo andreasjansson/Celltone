@@ -187,7 +187,7 @@ class Clause(object):
             else:
                 self.object_indexed = self.object.bind(pivot)
             current_object_index = beat[self.object_indexed.part.name].index
-            self.real_object_index = self.object_indexed.index + current_index
+            self.real_object_index = self.object_indexed.index + current_object_index
             self.object_part = self.object_indexed.part
             self.object_note = self.object_part.get_note_copy_at(self.real_object_index)
         else:
@@ -237,6 +237,7 @@ class Rule(object):
         for condition in self.lhs:
             if not condition.matches(beat, pivot):
                 return
+
         # TODO: see if faster to run can_alter before matching
         for modifier in self.rhs:
             if not modifier.can_alter(beat, pivot):
