@@ -24,9 +24,8 @@ Running Celltone
 
 Once installed, run Celltone by giving it a filename as an argument
 
-<pre>
-celltone examples/bubblesort.ct
-</pre>
+    celltone examples/bubblesort.ct
+
 
 To enable debug output, add `-v`, `-vv` or `-vvv` as an argument.
 `-v` will output the current parts and their notes, `-vv` will
@@ -51,24 +50,21 @@ A Celltone program is made up of two things: a number of *parts* and
 a number of *rules*. A part is a named list of notes and pauses, for 
 example:
 
-<pre>
-p = [0, _, _, 4, _, _, 7, _, _]
-</pre>
+    p = [0, _, _, 4, _, _, 7, _, _]
+
 
 Notes are numbers and pauses are underscores. The number 0 represents
 a C, 4 is an E, and so on.
 
 Rules are used to transform the parts. Example:
 
-<pre>
-{p[0] == 0, p[1] == _} => {p[0] = _, p[1] = 2}
-</pre>
+    {p[0] == 0, p[1] == _} => {p[0] = _, p[1] = 2}
+
 
 This example rule would transform the part we defined earlier into
 
-<pre>
-p = [_, 2, _, 4, _, _, 7, _, _]
-</pre>
+    p = [_, 2, _, 4, _, _, 7, _, _]
+
 
 
 ### Iterations and cyclicity ###
@@ -81,10 +77,9 @@ in a cycle.
 
 For example, say we have the parts
 
-<pre>
-a = [0, _, 2, _]
-b = [4, _, _]
-</pre>
+    a = [0, _, 2, _]
+    b = [4, _, _]
+
 
 During iteration 1, `a` would play `[0, _, 2, _]`, and `b` would play `[4, _, _, 4]`. During iteration 2, `a` would play `[0, _, 2, _]`, but `b` would play `[_, _, 4, _]`.
 
@@ -93,64 +88,69 @@ During iteration 1, `a` would play `[0, _, 2, _]`, and `b` would play `[4, _, _,
 The cyclicity of the parts also applies to the rules. Say we have the
 parts from above, along with the rule
 
-<pre>
-{a[0] != _, b[0] != _} => {b[-1] = 7}
-</pre>
+    {a[0] != _, b[0] != _} => {b[-1] = 7}
+
 
 After the first iteration, the rule would match the first beat,
 and the parts would now be
 
-<pre>
-a = [0, _, 2, _]
-b = [4, _, 7]
-</pre>
+    a = [0, _, 2, _]
+    b = [4, _, 7]
+
 
 For the second iteration, `b` is shifted by one step, and the notes
 played are now
 
-<pre>
-[0, _, 2, _] # a
-[_, 7, 4, _] # b
-</pre>
+    [0, _, 2, _] # a
+    [_, 7, 4, _] # b
+
 
 Rules are evaluated in the order they are defined in the source file.
 Notes can match in the left hand side of many rules, but may only
 be altered by the right hand side in one rule. For example, if we have
 
-<pre>
-p = [0, _, 2, 4]
-{p[0] == 2, p[1] != _} => {p[0] = _} # rule 1
-{p[0] == _} => {p[0] = 2, p[1] = 7}  # rule 2
-</pre>
+    p = [0, _, 2, 4]
+    {p[0] == 2, p[1] != _} => {p[0] = _} # rule 1
+    {p[0] == _} => {p[0] = 2, p[1] = 7}  # rule 2
+
 
 both rules would match, but only rule 1 would get applied. This is
 because the note at position 3 would have been modified by the
 second rule, but it had already been modified by the first rule.
 
+### Indexed parts ###
 
+Not only can notes be indexed using the `x[+2]` syntax, parts can
+also be indexed using the following syntax:
+
+    {<0>[0] == <1>[0], <0>[1] != _} => {<0>[0] = 1, <1>[1] = _}
+
+For the index to have meaning, parts need to be ordered. By default
+parts are ordered in the order they are defined, but the global
+propoerty `<partorder>` can be used to specify explicit ordering:
+
+    <partorder> = [a, c, b, d]
+    
 ### Part properties ###
 
 Parts have properties that can be set (but currently not changed)
-in the source file. At the moment, `channel`, `velocity` and
-`octava` are supported. Example:
+in the source file. At the moment, `channel`, `velocity`,
+`octava` and `transpose` are supported. Example:
 
-<pre>
-a = [0, _, 4, _, 9]
-a.channel = 4
-a.velocity = 90
-a.octava = 5
-</pre>
+    a = [0, _, 4, _, 9]
+    a.channel = 4
+    a.velocity = 90
+    a.octava = 5
+
 
 
 ### Global properties ###
 
 Global properties affect the piece as a whole. Currently the
-available properties are `<tempo>`, `<iterlength>` and `<subdiv>`. Example:
+available properties are `<tempo>`, `<iterlength>`, `<subdiv>`, `<transpose>` and `<partorder>`. Example:
 
-<code>
-&lt;tempo&gt; = 124
-&lt;subdiv&gt; = 16
-</code>
+    <tempo> = 124
+    <subdiv> = 16
 
 
 ### Comments ###
