@@ -3,11 +3,6 @@ Celltone
 
 *A simple programming language for generative music composition using cellular automata*
 
-Demo
-----
-
-To get a feel for what it is, there's a little demo up at http://demo.celltone-lang.com.
-
 The language
 ------------
 
