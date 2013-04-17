@@ -34,8 +34,6 @@ class Celltone(object):
                  output_file = None, length = None, die_on_error = True,
                  catch_sigint = True):
 
-        print die_on_error
-
         if not os.path.exists(celltone_home):
             os.mkdir(celltone_home)
 
